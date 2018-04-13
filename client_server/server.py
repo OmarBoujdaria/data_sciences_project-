@@ -1,17 +1,4 @@
-# Copyright 2015 gRPC authors.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-"""The Python implementation of the gRPC route guide server."""
+"""The Python implementation of the gRPC stochastic gradient descent server."""
 
 from concurrent import futures
 
@@ -25,15 +12,15 @@ import route_guide_pb2_grpc
 import math
 import threading
 
-_ONE_DAY_IN_SECONDS = 60 * 60 * 24
 
 import sgd
 from convertion import *
 
+
+_ONE_DAY_IN_SECONDS = 24*60*60
+
+""" Define the number of clients you want to use."""
 nbClients = 2
-paramSize = 5
-
-
 
 
 
@@ -48,25 +35,51 @@ def merge(vectors):
     return vmoy
 
 
-data = sgd.generateData(30)
+# Number of examples we want in our training.
+nbExamples = 30
 
+# Set of generated data.
+data = sgd.generateData(nbExamples)
+
+# Initial vector to process the stochastic gradient descent :
+# random generated.
 w0 = [random.random() for k in range(len(data[0][1]))]
 
+# Maximum number of epochs we allow.
 nbMaxCall = 20
 
 class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
 
+
+
+    """ We define attributes of the class to perform the computations."""
     def __init__(self):
+        # An iterator that will count the number of clients that contact the
+        # server at each epoch.
         self.iterator = 0
+        # A barrier condition to be sure that every waited client contacted
+        # the server before to start the GetFeature method (kind of join).
         self.enter_condition = (self.iterator == nbClients)
+        # An other barrier condition, that acts like a join on the threads to.
         self.exit_condition = (self.iterator == 0)
+        # A list to store all the vectors sent by each client at each epoch.
         self.vectors = []
+        # The current epoch (0 -> send the data to the clients).
         self.epoch = 0
+        # The previous vecor of parameters : the last that had been sent.
         self.oldParam = w0
-        self.nbCall = 0
+        # The name of one of the thread executing GetFeature : this one, and
+        # only this one will something about the state of the computation in
+        # the server.
         self.printerThreadName = ''
 
+
+
     def GetFeature(self, request, context):
+
+        ######################################################################
+        # Section 1 : wait for all the clients -> get their vectors and
+        # appoint one of them as the printer.
 
         self.iterator += 1
         self.vectors.append(str2vect(request.poids))
@@ -75,7 +88,14 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
         waiting.wait(lambda : self.enter_condition)
 
         self.printerThreadName = threading.current_thread().name
-            
+
+        ######################################################################
+
+        ######################################################################
+        # Section 2 : compute the new vector -> send the data, a merge of
+        # all the vectors we got from the clients or the message 'stop' the
+        # signal to the client that we converged.
+
         if (request.poids == 'pret'):
             vector = data2Sstr(data)
         elif (request.poids == 'getw0'):
@@ -84,10 +104,16 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
             vector = merge(self.vectors)
             diff = sgd.sous(self.oldParam,vector)
             normDiff = math.sqrt(sgd.ps(diff,diff))
-            if ((normDiff <= 10**(-3)) or (self.nbCall > nbMaxCall)):
+            if ((normDiff <= 10**(-3)) or (self.epoch > nbMaxCall)):
                 vector = 'stop'
             else:
                 vector = vect2str(vector)
+
+        ######################################################################
+
+        ######################################################################
+        # Section 3 : wait that all the threads pass the computation area, and
+        # store the new computed vector.
                  
         self.iterator -= 1
 
@@ -99,6 +125,8 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
         if (realComputation):
             self.oldParam = str2vect(vector)
 
+        ######################################################################
+
         ###################### PRINT OF THE CURRENT STATE ######################
         if (threading.current_thread().name == self.printerThreadName):
             print('')
@@ -109,18 +137,28 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
                 print('# We performed the epoch : ' + str(self.epoch) + '.')
             if (realComputation or (self.epoch == 1)):
                 print('# The merged vector is : ' + vector + '.')
+            if (self.epoch == nbMaxCall):
+                print('We performed the maximum number of iterations.')
             print('############################################################')
             print('')
             self.epoch += 1
         ############################### END OF PRINT ###########################
-        
+
+        ######################################################################
+
+        ######################################################################
+        # Section 4 : empty the storage list of the vectors, and wait for all
+        # the threads.
+
         self.vectors = []
         waiting.wait(lambda : (self.vectors == []))
 
-        self.nbCall += 1
-        
+        ######################################################################
+
         time.sleep(1)
         return route_guide_pb2.Vector(poids=vector)
+
+
 
 
 
