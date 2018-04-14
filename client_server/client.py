@@ -1,17 +1,4 @@
-# Copyright 2015 gRPC authors.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-"""The Python implementation of the gRPC route guide client."""
+"""The Python implementation of the gRPC stochastic gradient descent server client."""
 
 from __future__ import print_function
 
@@ -28,44 +15,43 @@ import sgd
 import convertion
 
 
-def vect2str(v):
-    txt = ""
-    n = len(v)
-    for i in range(n):
-        txt += str(v[i])
-        if (i != (n-1)):
-            txt += "<->"
-    return txt
-
-
-
-def str2vect(s):
-	v = s.split("<->")
-	return v
-
-
-
+# We define here the number of samples we want for each training subset.
 numSamples = 5
 
 
 def guide_get_feature(stub):
 
+    # A variable to count the number of iteration of the client, which must coincide with the epoch in the server.
     it = 1
 
+    # We make a first call to the server to get the data : after that call, vect is the data set. Then we store it.
     vect = stub.GetFeature(route_guide_pb2.Vector(poids='pret'))
+    dataSet = vect.poids
 
-    #vect is the data set
-    dataSampleSet = convertion.str2data(vect.poids)
-
-    #Get the departure vector
+    # This second call serves to get the departure vector. We store it, to eventually reuse it.
     vect = stub.GetFeature(route_guide_pb2.Vector(poids='getw0'))
+    departureVector = vect
+
+    # The depreciation of the SVM norm cost
     l = 0.5
+
+    # The constant step to perform the gradient descent on the learning training.
     step = 0.05
+
     while (vect.poids != 'stop'):
+
         print("iteration : " + str(it))
+
+        # We sample the data set to get a training subset.
+        dataSampleSet = convertion.str2data(dataSet)
+
+        # Gradient descent on the sample.
         nw = sgd.descent(dataSampleSet,convertion.str2vect(vect.poids),numSamples,step,l)
+
+        # The result is sent to the server.
         vect.poids = convertion.vect2str(nw)
         vect = stub.GetFeature(route_guide_pb2.Vector(poids=vect.poids))
+
         it += 1
         time.sleep(1)
     print(vect)

@@ -1,4 +1,7 @@
-"""The Python implementation of the gRPC stochastic gradient descent server."""
+"""The Python implementation of the gRPC stochastic gradient descent server.
+Note : it's necessary to download and install the package waiting of Python to execute that code. it permits to create
+barriers for the threads at different point of the algorithm. while loops was not enough : we can explain the different
+problems we had with that synchronization part during the meeting, and justify the use of the librairy. """
 
 from concurrent import futures
 
@@ -132,13 +135,14 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
             print('')
             print('############################################################')
             if (self.epoch == 0):
-                print('# We went the data to the clients.')
+                print('# We sent the data to the clients.')
             else:
                 print('# We performed the epoch : ' + str(self.epoch) + '.')
             if (realComputation or (self.epoch == 1)):
                 print('# The merged vector is : ' + vector + '.')
             if (self.epoch == nbMaxCall):
                 print('We performed the maximum number of iterations.')
+                print('The descent stops.')
             print('############################################################')
             print('')
             self.epoch += 1
