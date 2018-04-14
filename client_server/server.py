@@ -51,6 +51,10 @@ w0 = [random.random() for k in range(len(data[0][1]))]
 # Maximum number of epochs we allow.
 nbMaxCall = 20
 
+
+
+
+
 class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
 
 
@@ -142,7 +146,7 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
                 print('# The merged vector is : ' + vector + '.')
             if (self.epoch == nbMaxCall):
                 print('We performed the maximum number of iterations.')
-                print('The descent stops.')
+                print('The descent has been stopped.')
             print('############################################################')
             print('')
             self.epoch += 1

@@ -2,11 +2,9 @@
 
 from __future__ import print_function
 
-import random
 
 import grpc
 import time
-from random import randint
 
 import route_guide_pb2
 import route_guide_pb2_grpc
@@ -19,6 +17,25 @@ import convertion
 numSamples = 5
 
 
+
+
+
+##############################################################################
+# Contact the server to get the data set, the departure vector to compute the
+# SGD until the server decides of the convergence of the algorithm.
+
+# Input :
+#       -stub : the stub associated with our server to call its methods.
+
+# Remarks :
+#       -the SGD that we implemented uses a constant descent step. It could be
+#       improved for the milestone 2. The one we use is quite little, but we
+#       choose to do more iterations but get a precise enough result, and avoid
+#       to oscillate between the level curves of the SVM cost function.
+#       -
+##############################################################################
+
+
 def guide_get_feature(stub):
 
     # A variable to count the number of iteration of the client, which must coincide with the epoch in the server.
@@ -26,11 +43,12 @@ def guide_get_feature(stub):
 
     # We make a first call to the server to get the data : after that call, vect is the data set. Then we store it.
     vect = stub.GetFeature(route_guide_pb2.Vector(poids='pret'))
-    dataSet = vect.poids
 
-    # This second call serves to get the departure vector. We store it, to eventually reuse it.
+    # We convert the set of data in the good format.
+    dataSampleSet = convertion.str2data(vect.poids)
+
+    # This second call serves to get the departure vector.
     vect = stub.GetFeature(route_guide_pb2.Vector(poids='getw0'))
-    departureVector = vect
 
     # The depreciation of the SVM norm cost
     l = 0.5
@@ -41,9 +59,6 @@ def guide_get_feature(stub):
     while (vect.poids != 'stop'):
 
         print("iteration : " + str(it))
-
-        # We sample the data set to get a training subset.
-        dataSampleSet = convertion.str2data(dataSet)
 
         # Gradient descent on the sample.
         nw = sgd.descent(dataSampleSet,convertion.str2vect(vect.poids),numSamples,step,l)

@@ -1,9 +1,15 @@
 import random
 #import matplotlib.pyplot as plt
 
+
+
+
 ########################################################################
-# Scalar product between two vectors.
+# Different operations that are usefull to write the stochastic gradient
+# descent algorithm. Input vectors are note modified.
 ########################################################################
+
+# Compute the scalar product between to vectors u and v.
 
 def ps(u,v):
     res = 0
@@ -11,6 +17,7 @@ def ps(u,v):
         res += u[i]*v[i]
     return res
 
+# Each component of vect is multiplied by a.
 
 def mult(a,vect):
     res = []
@@ -18,6 +25,7 @@ def mult(a,vect):
         res.append(a*vect[i])
     return res
 
+# Compute the sum, componentwise between u and v.
 
 def vsum(u,v):
     res = []
@@ -25,6 +33,7 @@ def vsum(u,v):
         res.append(u[i]+v[i])
     return res
 
+# sous(u,v) = vsum(u,mutl(-1,v))
 
 def sous(u,v):
     res = []
@@ -33,25 +42,46 @@ def sous(u,v):
     return res
 
 
+
+
+
+
 ########################################################################
-# Generation of data to test stochastic gradient descent.
-# Format : [label : Int, List of int]
-# Input : -nbData : number of data generated.
-#         -nbVar : number of variables per data. 
+# Generation of data to test stochastic gradient descent. One can
+# visualize the data : remove the comments on the import of matplotlib
+# (line 2) and one the plot (lines 102 to 105). We generate points in
+# the square [0,10]x[0,10], the hyperplan is y = 10 - x.
+
+# Input :
+#       -nbData : number of generated data.
+
+# Output :
+#       -trainingSet : a set of tuples (label,example) which is a
+#        training. The format of this set is
+#        List(label : Int, example : List(float)) -> label = +1 or -1.
 ########################################################################
 
+
+# d is the double of the distance of each point in the square to the
+# separator hyperplan.
 d = 1
+
+# u is a hyperplan's orthogonal vector.
 u = [1,1]
 
 def generateData(nbData):
 
-    " Generation des donnees "
-    
+    # A and B denote each a different class, respectively associated
+    # to the labels 1 and -1.
     A= []
     B = []
-    
-    nbExemples = 0
-    nbRejetes = 0
+
+    # Number of examples we kept for our training set.
+    nbExamples = 0
+
+    # Number of data we rejected because they are not at the good
+    # distance of the hyperplan.
+    nbRejeted = 0
 
     absA, absB = [], []
     ordA, ordB = [], []
@@ -59,7 +89,7 @@ def generateData(nbData):
     cardA = 0
     cardB = 0
 
-    while (nbExemples < nbData):
+    while (nbExamples < nbData):
         a = random.randint(0,100)/10
         b = random.randint(0,100)/10
         dist = abs((ps(u,[a,b]))/(ps(u,u))-5)
@@ -68,38 +98,43 @@ def generateData(nbData):
             A.append([1,[a,b]])
             absA.append(a)
             ordA.append(b)
-            nbExemples += 1
+            nbExamples += 1
             cardA += 1
         elif (b < 10-b) & valide:
             B.append([-1,[a,b]])
             absB.append(a)
             ordB.append(b)
-            nbExemples += 1
+            nbExamples += 1
             cardB += 1
         else:
-            nbRejetes += 1
+            nbRejeted += 1
 
     #plt.scatter(absA,ordA,s=10,c='r',marker='*')
     #plt.scatter(absB,ordB,s=10,c='b',marker='o')
     #plt.plot([0,10],[10,0],'orange')
     #plt.show()
 
-    return(A+B)
+    trainingSet = A+B
+
+    return(trainingSet)
+
+
+
+
+
 
 
 ########################################################################
-# Stochastic gradient descent.
-# Input : -data : the data set to sample and on which learn.
-#         -w : the current vector of parameters.
-#         -numSamples : the number of samples we want for the learning.
-#         -step : departure step of the gradient descent.
-#         -l : multiplier of parameter's vector's norm.
-# Output : -w : the vector of parameters according to a random sample
-#               of data.
+# Sample a set in a subset of numSamples elements.
+# Input :
+#       -set : the set to sample.
+#       -numSamples : the number of elements of set that we want in
+#        the subset.
+# Output :
+#       -dataSample : the subset (sample of set).
+#       -sampleSize : the size of the sample set (which is equal to
+#        numSamples.
 ########################################################################
-
-
-#Remarks : data will be read in a textfile when we will have it
 
 
 def sample(set,numSamples):
@@ -120,26 +155,17 @@ def sample(set,numSamples):
 
 
 
-def descent(data,w,numSamples,step,l):
-
-    dataSample,sampleSize = sample(data,numSamples)
-
-    d = der_error(w,l,dataSample,sampleSize)
-    w = sous(w,mult(step,d))
-
-    return w
-
-
-
-
-#coord1 = random.random()
-#coord2 = random.random()
-
-#w = sgd(data,[coord1,coord2],1000,0.01,0.5)
-#print(w)
-
-
-""" Computation of the eror given by the SVM on a sample. """
+########################################################################
+# Computation of the error given by the SVM on a sample.
+# Input :
+#       -w : the vector of parameters.
+#       -l : the depreciation factor of the SVM.
+#       -sample : the training set.
+#       -sampleSize : number of examples in sample, i.e. the size of
+#        this set.
+# Output :
+#       -cost : the cost computed on sample.
+########################################################################
 
 def error(w,l,sample,sampleSize):
     norm =  (l/2)*ps(w,w)
@@ -148,11 +174,23 @@ def error(w,l,sample,sampleSize):
         label = sample[i][0]
         example = sample[i][1]
         sum += max(0,1-label*ps(w,example))
-    res = norm + sum
-    return res
+    cost = norm + sum
+    return cost
 
 
-""" Computation of the derivation of the error on a sample. """
+
+########################################################################
+# Computation of the derivation of the error on a sample.
+# Input :
+#       -w : the vector of parameters.
+#       -l : the depreciation factor of the SVM.
+#       -sample : the training set.
+#       -sampleSize : number of examples in sample, i.e. the size of
+#        this set.
+# Output :
+#       -dcost : the value of the derivative of the cost computed on
+#        sample.
+########################################################################
 
 def der_error(w,l,sample,sampleSize):
     d = mult(l, w)
@@ -162,6 +200,40 @@ def der_error(w,l,sample,sampleSize):
         example = sample[i][1]
         if (label*ps(w,example) <= 1):
             sum = vsum(sum,mult(label,example))
-    res = vsum(d,sum)
-    return res
+    dcost = vsum(d,sum)
+    return dcost
+
+
+
+
+
+########################################################################
+# Stochastic gradient descent.
+# Input : -data : the data set to sample and on which learn.
+#         -w : the current vector of parameters.
+#         -numSamples : the number of samples we want for the learning.
+#         -step : departure step of the gradient descent.
+#         -l : depreciation factor of the SVM.
+# Output : -w : the vector of parameters according to a random sample
+#               of data.
+########################################################################
+
+
+
+def descent(data,w,numSamples,step,l):
+
+    # Sample of the data set.
+    dataSample,sampleSize = sample(data,numSamples)
+
+    # Derivative of the cost evaluated on dataSample.
+    d = der_error(w,l,dataSample,sampleSize)
+
+    # Modification of the parameter vector w.
+    w = sous(w,mult(step,d))
+
+    return w
+
+
+
+
 
