@@ -10,7 +10,7 @@ import route_guide_pb2
 import route_guide_pb2_grpc
 
 import sgd
-import convertion
+import tools
 
 
 # We define here the number of samples we want for each training subset.
@@ -45,7 +45,7 @@ def guide_get_feature(stub):
     vect = stub.GetFeature(route_guide_pb2.Vector(poids='pret'))
 
     # We convert the set of data in the good format.
-    dataSampleSet = convertion.str2data(vect.poids)
+    dataSampleSet = tools.str2data(vect.poids)
 
     # This second call serves to get the departure vector.
     vect = stub.GetFeature(route_guide_pb2.Vector(poids='getw0'))
@@ -61,10 +61,10 @@ def guide_get_feature(stub):
         print("iteration : " + str(it))
 
         # Gradient descent on the sample.
-        nw = sgd.descent(dataSampleSet,convertion.str2vect(vect.poids),numSamples,step,l)
+        nw = sgd.descent(dataSampleSet, tools.str2vect(vect.poids), numSamples, step, l)
 
         # The result is sent to the server.
-        vect.poids = convertion.vect2str(nw)
+        vect.poids = tools.vect2str(nw)
         vect = stub.GetFeature(route_guide_pb2.Vector(poids=vect.poids))
 
         it += 1

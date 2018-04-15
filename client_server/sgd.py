@@ -1,45 +1,8 @@
 import random
+import tools
 #import matplotlib.pyplot as plt
 
 
-
-
-########################################################################
-# Different operations that are usefull to write the stochastic gradient
-# descent algorithm. Input vectors are note modified.
-########################################################################
-
-# Compute the scalar product between to vectors u and v.
-
-def ps(u,v):
-    res = 0
-    for i in range(len(u)):
-        res += u[i]*v[i]
-    return res
-
-# Each component of vect is multiplied by a.
-
-def mult(a,vect):
-    res = []
-    for i in range(len(vect)):
-        res.append(a*vect[i])
-    return res
-
-# Compute the sum, componentwise between u and v.
-
-def vsum(u,v):
-    res = []
-    for i in range(len(u)):
-        res.append(u[i]+v[i])
-    return res
-
-# sous(u,v) = vsum(u,mutl(-1,v))
-
-def sous(u,v):
-    res = []
-    for i in range(len(u)):
-        res.append(u[i]-v[i])
-    return res
 
 
 
@@ -92,7 +55,7 @@ def generateData(nbData):
     while (nbExamples < nbData):
         a = random.randint(0,100)/10
         b = random.randint(0,100)/10
-        dist = abs((ps(u,[a,b]))/(ps(u,u))-5)
+        dist = abs((tools.ps(u,[a,b]))/(tools.ps(u,u))-5)
         valide = (d==0) or ((d!=0) & (dist >= d))
         if (a > 10-b) & valide:
             A.append([1,[a,b]])
@@ -168,12 +131,12 @@ def sample(set,numSamples):
 ########################################################################
 
 def error(w,l,sample,sampleSize):
-    norm =  (l/2)*ps(w,w)
+    norm =  (l/2)*tools.ps(w,w)
     sum = 0
     for i in range(sampleSize):
         label = sample[i][0]
         example = sample[i][1]
-        sum += max(0,1-label*ps(w,example))
+        sum += max(0,1-label*tools.ps(w,example))
     cost = norm + sum
     return cost
 
@@ -193,14 +156,14 @@ def error(w,l,sample,sampleSize):
 ########################################################################
 
 def der_error(w,l,sample,sampleSize):
-    d = mult(l, w)
+    d = tools.smult(l, w)
     sum = [0 for i in range(len(w))]
     for i in range(sampleSize):
         label = sample[i][0]
         example = sample[i][1]
-        if (label*ps(w,example) <= 1):
-            sum = vsum(sum,mult(label,example))
-    dcost = vsum(d,sum)
+        if (label*tools.ps(w,example) <= 1):
+            sum = tools.vsum(sum,tools.smult(label,example))
+    dcost = tools.vsum(d,sum)
     return dcost
 
 
@@ -229,7 +192,7 @@ def descent(data,w,numSamples,step,l):
     d = der_error(w,l,dataSample,sampleSize)
 
     # Modification of the parameter vector w.
-    w = sous(w,mult(step,d))
+    w = tools.vsous(w,tools.smult(step,d))
 
     return w
 

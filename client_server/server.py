@@ -5,6 +5,7 @@ problems we had with that synchronization part during the meeting, and justify t
 
 from concurrent import futures
 
+import math
 import time
 import waiting
 
@@ -12,12 +13,12 @@ import grpc
 import random
 import route_guide_pb2
 import route_guide_pb2_grpc
-import math
+
 import threading
 
 
 import sgd
-from convertion import *
+import tools
 
 
 _ONE_DAY_IN_SECONDS = 24*60*60
@@ -43,6 +44,9 @@ nbExamples = 30
 
 # Set of generated data.
 data = sgd.generateData(nbExamples)
+
+# Preprocessing of the data (normalisation and centration).
+data = tools.dataPreprocessing(data)
 
 # Initial vector to process the stochastic gradient descent :
 # random generated.
@@ -89,7 +93,7 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
         # appoint one of them as the printer.
 
         self.iterator += 1
-        self.vectors.append(str2vect(request.poids))
+        self.vectors.append(tools.str2vect(request.poids))
     
         self.enter_condition = (self.iterator == nbClients)
         waiting.wait(lambda : self.enter_condition)
@@ -104,17 +108,17 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
         # signal to the client that we converged.
 
         if (request.poids == 'pret'):
-            vector = data2Sstr(data)
+            vector = tools.data2Sstr(data)
         elif (request.poids == 'getw0'):
-            vector = vect2str(w0)
+            vector = tools.vect2str(w0)
         else :
             vector = merge(self.vectors)
-            diff = sgd.sous(self.oldParam,vector)
-            normDiff = math.sqrt(sgd.ps(diff,diff))
+            diff = tools.vsous(self.oldParam,vector)
+            normDiff = math.sqrt(tools.ps(diff,diff))
             if ((normDiff <= 10**(-3)) or (self.epoch > nbMaxCall)):
                 vector = 'stop'
             else:
-                vector = vect2str(vector)
+                vector = tools.vect2str(vector)
 
         ######################################################################
 
@@ -130,7 +134,7 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
         realComputation = (request.poids != 'pret') and (request.poids != 'getw0') and (vector != 'stop')
 
         if (realComputation):
-            self.oldParam = str2vect(vector)
+            self.oldParam = tools.str2vect(vector)
 
         ######################################################################
 
