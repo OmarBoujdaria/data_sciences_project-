@@ -24,7 +24,7 @@ import tools
 _ONE_DAY_IN_SECONDS = 24*60*60
 
 """ Define the number of clients you want to use."""
-nbClients = 2
+nbClients = 3
 
 
 
@@ -45,7 +45,7 @@ nbExamples = 30
 # Set of generated data.
 data = sgd.generateData(nbExamples)
 
-# Preprocessing of the data (normalisation and centration).
+# Pre-processing of the data (normalisation and centration).
 data = tools.dataPreprocessing(data)
 
 # Initial vector to process the stochastic gradient descent :

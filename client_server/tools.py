@@ -52,6 +52,64 @@ def vdiv(u,v):
     return res
 
 
+
+
+
+########################################################################
+# Sparse version of the addition and substraction of the previous
+# functions.
+########################################################################
+
+
+
+def sparse_ps(cu,cv,lenu,lenv,res):
+
+    if ((lenu != 0) and (lenv != 0)):
+        if (cu[0][0] == cv[0][0]):
+            res += cu[0][1]*cv[0][1]
+        del cu[0]
+        del cv[0]
+        sparse_ps(cu,cv,lenu-1,lenv-1,res)
+
+
+
+
+def sparse_smult(a,cu,res):
+    for i in range(len(cu)):
+        res.append([cu[i][0],a * cu[i][1]])
+
+
+
+
+def sparse_vsum(cu,cv,lenu,lenv,res):
+
+    if (lenu == 0):
+        res = res@cv
+    elif (lenv == 0):
+        res = res@cu
+    else:
+        if (cu[0][0] == cv[0][0]):
+            res.append([cu[0][0],cu[0][1] + cv[0][1]])
+            del cu[0]
+            del cv[0]
+            lenu -= 1
+            lenv -= 1
+        elif (cu[0][0] < cv[0][0]):
+            res.append(cu[0])
+            del cu[0]
+            lenu -= 1
+        else:
+            res.append(cv[0])
+            del cv[0]
+            lenv -= 1
+        sparse_vsum(cu,cv,lenu,lenv,res)
+
+
+        
+
+
+
+
 ####################################################################
 # Each element of the training set is a list of the form :
 # List(label : int, example : List(float). In order to send and

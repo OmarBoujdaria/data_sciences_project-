@@ -1,11 +1,6 @@
 import random
 import tools
-#import matplotlib.pyplot as plt
-
-
-
-
-
+import matplotlib.pyplot as plt
 
 
 
@@ -72,18 +67,18 @@ def generateData(nbData):
         else:
             nbRejeted += 1
 
-    #plt.scatter(absA,ordA,s=10,c='r',marker='*')
-    #plt.scatter(absB,ordB,s=10,c='b',marker='o')
-    #plt.plot([0,10],[10,0],'orange')
-    #plt.show()
+    plt.scatter(absA,ordA,s=10,c='r',marker='*')
+    plt.scatter(absB,ordB,s=10,c='b',marker='o')
+    plt.plot([0,10],[10,0],'orange')
+    plt.show()
 
     trainingSet = A+B
 
-    return(trainingSet)
+    return (trainingSet)
 
 
 
-
+generateData(200)
 
 
 
