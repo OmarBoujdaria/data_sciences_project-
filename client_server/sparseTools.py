@@ -18,7 +18,6 @@ import math
 def sparse_ps(cu,cv,lenu,lenv,res):
 
     if  ((lenu == 0) or (lenv == 0)):
-        print("res = " + str(res))
         return res
     else:
         #print("####")
@@ -45,9 +44,9 @@ def sparse_ps(cu,cv,lenu,lenv,res):
 
 # Each component of vect is modified by func.
 
-def sparse_map(func,u):
+def sparse_map(func,u,res):
     for i in range(len(u)):
-        u[i][1] = func(u[i][1])
+        res.append([u[i][0],func(u[i][1])])
 
 
 
@@ -87,13 +86,12 @@ def sparse_vsum(cu,cv,lenu,lenv,res):
 
 def sparse_vsous(u,v,lenu,lenv,res):
 
-    minus_cv = list(v)
+    minus_cv = []
 
     def opp(x):
         return (-x)
 
-    sparse_map(opp,minus_cv)
-    print("minus_cv = " + str(minus_cv))
+    sparse_map(opp,v,minus_cv)
     sparse_vsum(u,minus_cv,lenu,lenv,res)
 
 
@@ -159,16 +157,25 @@ def dataPreprocessing(data):
 
         cmoy = list(moy)
         cex = data[j][1]
-        moy = []
-        sparse_vsum(cmoy,cex,len(moy),len(cex),moy)
+        temp_moy = []
 
-        def div(x):
-            return x/n
+        sparse_vsum(cmoy,cex,len(moy),len(cex),temp_moy)
 
-        sparse_map(div,moy)
+        moy = list(temp_moy)
+
+        print("cmoy_add = " + str(moy))
+
+    def div(x):
+        return x/n
+
+    moy_pond = list(moy)
+    moy = []
+    sparse_map(div,moy_pond,moy)
 
     lenmoy = len(moy)
 
+
+    print("Le vecteur des moyennes est : " +str(moy))
 
     # Computation of the deviation
     sigma = []
@@ -183,11 +190,15 @@ def dataPreprocessing(data):
         def square(x):
             return x*x
 
-        sparse_map(square,data_minus_moy)
+        square_minus = []
+
+        sparse_map(square,data_minus_moy,square_minus)
 
         csigma = list(sigma)
         sigma = []
-        sparse_vsum(csigma,data_minus_moy,len(csigma),len(data_minus_moy),sigma)
+        sparse_vsum(csigma,square_minus,len(csigma),len(square_minus),sigma)
+
+    print("Le vecteur des écarts-types est : " + str(sigma))
 
 
     for k in range(n):

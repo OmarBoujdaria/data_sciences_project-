@@ -49,18 +49,15 @@ print('')
 print("############### Test of the sparse map. ###############")
 print('')
 
-st_map_v = [[2,4],[3,7],[8,3]]   # = list(v) --> doesn't work, modify v too ???!!
-
-print(id(st_map_v) == id(v))
 
 def opp(x):
     return (-x)
 
-print("v = " + str(v))
+st_map = []
 
-st.sparse_map(opp,st_map_v)
+st.sparse_map(opp,v,st_map)
 
-print("st_map_v = " + str(st_map_v))
+print("st_map_v = " + str(st_map))
 
 
 
@@ -87,3 +84,26 @@ s_div = []
 st.sparse_vdiv(list(u),[1.0,3.5,0.5,1.5],4,4,s_div)
 
 print("s_div = " + str(s_div))
+
+
+print('')
+print("#####################################")
+print("u = " + str(u))
+print("v = " + str(v))
+print("#####################################")
+print('')
+print('')
+print('')
+print('')
+print("########### Test of the data porcessing ############")
+
+
+e1 = [[1,2],[3,7],[7,1],[10,3]]
+e2 = [[2,4],[3,7],[8,3]]
+e3 = [[2,1],[3,7],[9,7]]
+e4 = [[7,8],[10,4]]
+e5 = [[1,2],[2,3],[3,4],[4,5],[5,6],[9,1]]
+
+data = [[1,e1],[-1,e2],[1,e3],[1,e4],[-1,e5]]
+
+st.dataPreprocessing(data)
