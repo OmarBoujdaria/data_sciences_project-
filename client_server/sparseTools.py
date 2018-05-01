@@ -100,16 +100,109 @@ def sparse_vsous(u,v,lenu,lenv,res):
 
 def sparse_vdiv(cu,cv,lenu,lenv,res):
 
-    if (lenu != lenv):
-        print('You try to use sparse_vdiv with vectors of different sizes.')
-    else :
-        for i in range(lenu):
-            res.append([cu[i][0],cu[i][1]/cv[i]])
+    def add_list(u,v):
+        for i in range(len(v)):
+            u.append(v[i])
+
+    if (lenu == 0):
+        add_list(res,[])
+    elif (lenv == 0):
+        add_list(res,[])
+        print("v is empty before u : STRANGE. In sparse_div.")
+    else:
+        if (cu[0][0] == cv[0][0]):
+            res.append([cu[0][0],cu[0][1]/cv[0][1]])
+            del cu[0]
+            del cv[0]
+            lenu -= 1
+            lenv -= 1
+        elif (cu[0][0] < cv[0][0]):
+            # In theory, in our application case (process data), this
+            # case should never happen
+            print("Somethong strange happenned in sparse_div, probably during dataProcessing.")
+            res.append(cu[0])
+            del cu[0]
+            lenu -= 1
+        else:
+            del cv[0]
+            lenv -= 1
+        sparse_vdiv(cu,cv,lenu,lenv,res)
 
 
 
 
 
+
+
+
+
+####################################################################
+# Each element of the training set is a list of the form :
+# List(label : int, example : List(float). In order to send and
+# receive this data with the simplest service of gRPC (and this way
+# avoid serialization), we need to convert this data in text and
+# vice-versa. Each element of vectors are separated by '<->', a label
+# and its example are separated bu '<|>' and at least two elements
+# of the training set are separated by '<<->>'.
+# Thus, we have to different string format :
+#       -for a vector : [1,3,2,9] <=> '1<->3<->2<->9'.
+#       -for a data set : [[1,[4,3,5]],[-1,[8,9,4]]] <=>
+#                         '1<|>4<->3<->5<<->>-1<|>8<->9<->4'.
+####################################################################
+
+# Convert a vector (list) into a string.
+
+def sparse_vect2str(v):
+    txt = ""
+    n = len(v)
+    for i in range(n):
+        txt += str(v[i])
+        if (i != (n-1)):
+            txt += "<->"
+    return txt
+
+# Convert a string vector into a vector (list)
+
+def sparse_str2vect(s):
+    v = s.split("<->")
+    if (len(v) > 1):
+        for i in range(len(v)):
+            v[i] = float(v[i])
+    return v
+
+
+
+# Convert a data set (lists) into a string
+
+def sparse_data2Sstr(data):
+    n = len(data[0][1])
+    dataStr =  ""
+    for i in range(len(data)):
+        dstr = str(data[i][0])+'<|>'
+        for j in range(n):
+            if (j == 0):
+                dstr += str(data[i][1][j])
+            else:
+                dstr += '<->' + str(data[i][1][j])
+        if (i == 0):
+            dataStr += dstr
+        else:
+            dataStr += '<<->>' + dstr
+    return dataStr
+
+# Convert a data string into a data set (lists)
+
+def sparse_str2data(strData):
+    frame = strData.split("<<->>")
+    print(frame[0])
+    for i in range(len(frame)):
+        labex = frame[i].split("<|>")
+        label = float(labex[0])
+        example = labex[1].split("<->")
+        for k in range(len(example)):
+            example[k] = float(example[k])
+        frame[i] = [label,example]
+    return frame
 
 
 
@@ -135,12 +228,13 @@ def vectPreprocessing(ex,moy,sigma,lenmoy,lensigma):
     cmoy = list(moy)
     csigma = list(sigma)
 
-    ex = []
+    ex_minus_moy = []
+    ex_div_sigma = []
 
-    sparse_vsous(cex,cmoy,lenmoy,lensigma,ex)
-    sparse_vdiv(cex,csigma,lenmoy,lensigma,ex)
+    sparse_vsous(cex,cmoy,len(cex),lenmoy,ex_minus_moy)
+    sparse_vdiv(ex_minus_moy,csigma,len(ex_minus_moy),lensigma,ex_div_sigma)
 
-    return ex
+    return ex_div_sigma
 
 
 
@@ -156,14 +250,12 @@ def dataPreprocessing(data):
     for j in range(n):
 
         cmoy = list(moy)
-        cex = data[j][1]
+        cex = list(data[j][1])
         temp_moy = []
 
         sparse_vsum(cmoy,cex,len(moy),len(cex),temp_moy)
 
         moy = list(temp_moy)
-
-        print("cmoy_add = " + str(moy))
 
     def div(x):
         return x/n
@@ -175,6 +267,7 @@ def dataPreprocessing(data):
     lenmoy = len(moy)
 
 
+    print('')
     print("Le vecteur des moyennes est : " +str(moy))
 
     # Computation of the deviation
@@ -195,13 +288,15 @@ def dataPreprocessing(data):
         sparse_map(square,data_minus_moy,square_minus)
 
         csigma = list(sigma)
-        sigma = []
-        sparse_vsum(csigma,square_minus,len(csigma),len(square_minus),sigma)
+        temp_sigma = []
+        sparse_vsum(csigma,square_minus,len(csigma),len(square_minus),temp_sigma)
+        sigma = temp_sigma
 
     print("Le vecteur des écarts-types est : " + str(sigma))
+    print('')
 
 
     for k in range(n):
-        data[k][1] = vectPreprocessing(data[k][1],moy,sigma)
+        data[k][1] = vectPreprocessing(data[k][1],moy,sigma,lenmoy,len(sigma))
 
     return data

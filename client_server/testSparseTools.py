@@ -81,7 +81,7 @@ print("############ Test of the sparse division. ############")
 print('')
 
 s_div = []
-st.sparse_vdiv(list(u),[1.0,3.5,0.5,1.5],4,4,s_div)
+st.sparse_vdiv(list(u),[[1,1.0],[3,3.5],[7,0.5],[10,1.5]],4,4,s_div)
 
 print("s_div = " + str(s_div))
 
@@ -106,4 +106,4 @@ e5 = [[1,2],[2,3],[3,4],[4,5],[5,6],[9,1]]
 
 data = [[1,e1],[-1,e2],[1,e3],[1,e4],[-1,e5]]
 
-st.dataPreprocessing(data)
+print("Processed data = " + str(st.dataPreprocessing(data)))

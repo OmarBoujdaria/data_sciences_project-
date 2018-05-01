@@ -1,0 +1,7 @@
+Choses à faire pour la Milestone 2 (par odre de priorité, je pense):
+
+	1) fournir une "API" de manipulation des data    : Omar
+	2) intégrer la sparse représentation             : William 
+	3) réaliser une application asynchrone           : Gregoire - Omar
+	4) faire la cross-validation                     : William 
+	5) utiliser Docker & Kubernetes
