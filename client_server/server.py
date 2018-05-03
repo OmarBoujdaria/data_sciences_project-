@@ -32,7 +32,7 @@ def merge(vectors):
     vmoy = {}
     for spVec in vectors:
         vmoy = std.sparse_vsum(vmoy,spVec)
-    vmoy = std.sparse_mult(1/nbClients,vmoy)
+    vmoy = std.sparse_mult(1./nbClients,vmoy)
     return vmoy
 
 
