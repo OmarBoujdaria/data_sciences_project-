@@ -1,5 +1,5 @@
 ########################################################################
-#                Test the sparse tools library.                        #
+#           Test the sparse tools library with dictionaries.           #
 ########################################################################
 
 import sparseToolsDict as std
@@ -36,6 +36,9 @@ print('')
 spdsu = std.sparse_vsum(spV1, spV2)
 print("spdsum = " + str(spdsu))
 
+empty = std.sparse_vsum({},spV1)
+print("empty = " + str(empty))
+
 
 print('')
 print("############### Test of the sparse map. ###############")
@@ -67,6 +70,14 @@ print('')
 spddiv = std.sparse_vdiv(spV1,spV2)
 print("spddiv = " + str(spddiv))
 
+
+print('')
+print("############ Test of the elementwise multiplication. ############")
+print('')
+
+
+spdmult = std.sparse_mult(2,spV1)
+print("spdmult = " + str(spdmult))
 
 print('')
 print("######### Test of the conversion dict -> str. ##########")

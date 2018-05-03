@@ -18,24 +18,21 @@ import threading
 
 
 import sgd
-import tools
+import sparseToolsDict as std
 
 
 _ONE_DAY_IN_SECONDS = 24*60*60
 
 """ Define the number of clients you want to use."""
-nbClients = 3
+nbClients = 2
 
 
 
 def merge(vectors):
-    n = len(vectors[0]) #all the vectors have the same size
-    vmoy = [0 for i in range(n)]
-    for i in range(n):
-        summ = 0 
-        for k in range(nbClients):
-            summ += float(vectors[k][i])
-        vmoy[i] = summ/nbClients
+    vmoy = {}
+    for spVec in vectors:
+        vmoy = std.sparse_vsum(vmoy,spVec)
+    vmoy = std.sparse_mult(1/nbClients,vmoy)
     return vmoy
 
 
@@ -46,11 +43,13 @@ nbExamples = 30
 data = sgd.generateData(nbExamples)
 
 # Pre-processing of the data (normalisation and centration).
-data = tools.dataPreprocessing(data)
+#data = tools.dataPreprocessing(data)
 
 # Initial vector to process the stochastic gradient descent :
 # random generated.
-w0 = [random.random() for k in range(len(data[0][1]))]
+w0 = {1:0.21}                  #one element, to start the computation
+nbParameters = len(data[0])-1  #-1 because we don't count the label
+
 
 # Maximum number of epochs we allow.
 nbMaxCall = 20
@@ -83,6 +82,8 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
         # only this one will something about the state of the computation in
         # the server.
         self.printerThreadName = ''
+        # The final vector of parameters we find
+        self.paramVector = {}
 
 
 
@@ -93,8 +94,10 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
         # appoint one of them as the printer.
 
         self.iterator += 1
-        self.vectors.append(tools.str2vect(request.poids))
-    
+        if (request.poids == "pret" or request.poids == "getw0"):
+            self.vectors.append(request.poids)
+        else:
+            self.vectors.append(std.str2dict(request.poids))
         self.enter_condition = (self.iterator == nbClients)
         waiting.wait(lambda : self.enter_condition)
 
@@ -108,17 +111,18 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
         # signal to the client that we converged.
 
         if (request.poids == 'pret'):
-            vector = tools.data2Sstr(data)
+            vector = std.datadict2Sstr(data)
         elif (request.poids == 'getw0'):
-            vector = tools.vect2str(w0)
+            vector = std.dict2str(w0)
         else :
             vector = merge(self.vectors)
-            diff = tools.vsous(self.oldParam,vector)
-            normDiff = math.sqrt(tools.ps(diff,diff))
+            diff = std.sparse_vsous(self.oldParam,vector)
+            normDiff = math.sqrt(std.sparse_dot(diff,diff))
             if ((normDiff <= 10**(-3)) or (self.epoch > nbMaxCall)):
+                self.paramVector = vector
                 vector = 'stop'
             else:
-                vector = tools.vect2str(vector)
+                vector = std.dict2str(vector)
 
         ######################################################################
 
@@ -134,7 +138,7 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
         realComputation = (request.poids != 'pret') and (request.poids != 'getw0') and (vector != 'stop')
 
         if (realComputation):
-            self.oldParam = tools.str2vect(vector)
+            self.oldParam = std.str2dict(vector)
 
         ######################################################################
 
@@ -146,6 +150,8 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
                 print('# We sent the data to the clients.')
             else:
                 print('# We performed the epoch : ' + str(self.epoch) + '.')
+                if (vector == "stop"):
+                    print("# The vecotr that achieve the convergence is : " + str(self.paramVector))
             if (realComputation or (self.epoch == 1)):
                 print('# The merged vector is : ' + vector + '.')
             if (self.epoch == nbMaxCall):

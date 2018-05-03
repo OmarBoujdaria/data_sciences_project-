@@ -2,6 +2,8 @@
 #       Sparse version of the library tools with dictionnaries.        #
 ########################################################################
 
+from __builtin__ import unicode
+
 
 
 
@@ -11,6 +13,8 @@
 ########################################################################
 
 # Compute the scalar product between to vectors spVec1 and spVec2.
+
+
 def sparse_dot(spVec1, spVec2):
     return sum([val * spVec2.get(key, 0) for key, val in spVec1.items() if (key != -1)])
 
@@ -55,6 +59,12 @@ def sparse_vdiv(spVec1, spVec2):
         return div
 
 
+# each component of u is multiplied by a
+def sparse_mult(a,spVec1):
+    for key, value in spVec1.items():
+        if (key != -1):
+            spVec1[key] = a*value
+    return spVec1
 
 ####################################################################
 # Each element of the training set is a list of the form :
@@ -73,10 +83,13 @@ def sparse_vdiv(spVec1, spVec2):
 # Convert a dictionnary into a string.
 
 def dict2str(dict):
-    txt = ""
-    for key, value in dict.items():
-        txt += str(key)+":"+str(value)+"<->"
-    return txt[0:-3]
+    if (type(dict) != str):
+        txt = ""
+        for key, value in dict.items():
+            txt += str(key)+":"+str(value)+"<->"
+        return txt[0:-3]
+    else:
+        return dict
 
 # Convert a string vector into a dictionnary
 

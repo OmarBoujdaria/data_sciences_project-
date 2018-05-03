@@ -1,6 +1,6 @@
 import random
-import tools
-import matplotlib.pyplot as plt
+import sparseToolsDict as std
+
 
 
 
@@ -25,7 +25,7 @@ import matplotlib.pyplot as plt
 d = 1
 
 # u is a hyperplan's orthogonal vector.
-u = [1,1]
+u = {1:1,1:1}
 
 def generateData(nbData):
 
@@ -50,16 +50,17 @@ def generateData(nbData):
     while (nbExamples < nbData):
         a = random.randint(0,100)/10
         b = random.randint(0,100)/10
-        dist = abs((tools.ps(u,[a,b]))/(tools.ps(u,u))-5)
+        genvect = {1:a,2:b}
+        dist = abs((std.sparse_dot(u,genvect))/(std.sparse_dot(u,u))-5)
         valide = (d==0) or ((d!=0) & (dist >= d))
         if (a > 10-b) & valide:
-            A.append([1,[a,b]])
+            A.append({-1:1,1:a,2:b})
             absA.append(a)
             ordA.append(b)
             nbExamples += 1
             cardA += 1
         elif (b < 10-b) & valide:
-            B.append([-1,[a,b]])
+            B.append(({-1:-1,1:a,2:b}))
             absB.append(a)
             ordB.append(b)
             nbExamples += 1
@@ -67,18 +68,18 @@ def generateData(nbData):
         else:
             nbRejeted += 1
 
-    plt.scatter(absA,ordA,s=10,c='r',marker='*')
-    plt.scatter(absB,ordB,s=10,c='b',marker='o')
-    plt.plot([0,10],[10,0],'orange')
-    plt.show()
+    #plt.scatter(absA,ordA,s=10,c='r',marker='*')
+    #plt.scatter(absB,ordB,s=10,c='b',marker='o')
+    #plt.plot([0,10],[10,0],'orange')
+    #plt.show()
 
     trainingSet = A+B
 
-    return (trainingSet)
+    return trainingSet
 
 
 
-generateData(200)
+#generateData(200)
 
 
 
@@ -126,12 +127,12 @@ def sample(set,numSamples):
 ########################################################################
 
 def error(w,l,sample,sampleSize):
-    norm =  (l/2)*tools.ps(w,w)
+    norm =  (l/2)*std.sparse_dot(w,w)
     sum = 0
     for i in range(sampleSize):
-        label = sample[i][0]
-        example = sample[i][1]
-        sum += max(0,1-label*tools.ps(w,example))
+        label = sample[i].get(-1,0)
+        example = std.take_out_label(sample[i])
+        sum += max(0,1-label*std.sparse_dot(w,example))
     cost = norm + sum
     return cost
 
@@ -151,14 +152,14 @@ def error(w,l,sample,sampleSize):
 ########################################################################
 
 def der_error(w,l,sample,sampleSize):
-    d = tools.smult(l, w)
-    sum = [0 for i in range(len(w))]
+    d = std.sparse_mult(l, w)
+    sum = {}
     for i in range(sampleSize):
-        label = sample[i][0]
-        example = sample[i][1]
-        if (label*tools.ps(w,example) <= 1):
-            sum = tools.vsum(sum,tools.smult(label,example))
-    dcost = tools.vsum(d,sum)
+        label = sample[i].get(-1,0)
+        example = std.take_out_label(sample[i])
+        if (label*std.sparse_dot(w,example) <= 1):
+            sum = std.sparse_vsum(sum,std.sparse_mult(label,example))
+    dcost = std.sparse_vsum(d,sum)
     return dcost
 
 
@@ -187,7 +188,7 @@ def descent(data,w,numSamples,step,l):
     d = der_error(w,l,dataSample,sampleSize)
 
     # Modification of the parameter vector w.
-    w = tools.vsous(w,tools.smult(step,d))
+    w = std.sparse_vsous(w,std.sparse_mult(step,d))
 
     return w
 
