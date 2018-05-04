@@ -16,6 +16,7 @@ import route_guide_pb2_grpc
 
 import threading
 
+import matplotlib.pyplot as plt
 
 import sgd
 import sparseToolsDict as std
@@ -36,11 +37,17 @@ def merge(vectors):
     return vmoy
 
 
-# Number of examples we want in our training.
-nbExamples = 30
+# Number of examples we want in our training set.
+nbExamples = 300
 
-# Set of generated data.
-data = sgd.generateData(nbExamples)
+# Set of generated data for training.
+trainingSet = sgd.generateData(nbExamples)
+
+# Number of examples we want in our training set.
+nbTestingData = 120
+
+# Set of generated data for testing.
+testingSet = sgd.generateData(nbTestingData)
 
 # Pre-processing of the data (normalisation and centration).
 #data = tools.dataPreprocessing(data)
@@ -48,11 +55,11 @@ data = sgd.generateData(nbExamples)
 # Initial vector to process the stochastic gradient descent :
 # random generated.
 w0 = {1:0.21}                  #one element, to start the computation
-nbParameters = len(data[0])-1  #-1 because we don't count the label
+nbParameters = len(trainingSet[0])-1  #-1 because we don't count the label
 
 
 # Maximum number of epochs we allow.
-nbMaxCall = 20
+nbMaxCall = 50
 
 
 
@@ -84,6 +91,11 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
         self.printerThreadName = ''
         # The final vector of parameters we find
         self.paramVector = {}
+        # Error on the training set, computed at each cycle of the server
+        self.trainingErrors = []
+        # Error on the testing set, computed at each cycle of the server
+        self.testingErrors = []
+
 
 
 
@@ -111,7 +123,7 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
         # signal to the client that we converged.
 
         if (request.poids == 'pret'):
-            vector = std.datadict2Sstr(data)
+            vector = std.datadict2Sstr(trainingSet)
         elif (request.poids == 'getw0'):
             vector = std.dict2str(w0)
         else :
@@ -152,7 +164,14 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
                 print('# We performed the epoch : ' + str(self.epoch) + '.')
                 if (vector == "stop"):
                     print("# The vecotr that achieve the convergence is : " + str(self.paramVector))
+                    # Plot the error on the training set
+                    plt.plot([i for i in range(self.epoch-1)],self.testingErrors,'b')
+                    plt.plot([i for i in range(self.epoch-1)],self.trainingErrors,'r')
+                    plt.show()
             if (realComputation or (self.epoch == 1)):
+                # Compute the error made with that vector of parameters on the testing set
+                self.testingErrors.append(sgd.error(self.oldParam,0.5,testingSet,nbTestingData))
+                self.trainingErrors.append(sgd.error(self.oldParam,0.5,trainingSet,nbExamples))
                 print('# The merged vector is : ' + vector + '.')
             if (self.epoch == nbMaxCall):
                 print('We performed the maximum number of iterations.')
@@ -173,7 +192,7 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
 
         ######################################################################
 
-        time.sleep(1)
+        #time.sleep(1)
         return route_guide_pb2.Vector(poids=vector)
 
 
