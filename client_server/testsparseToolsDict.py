@@ -132,16 +132,13 @@ print('')
 print("########### Test of the data preprocessing ############")
 print('')
 
+# Output values for moy and sigma have been checked by hand
 
+data = [spV1,spV2,spV3]
 
+treatedData = std.dataPreprocessing(data,12)
 
-e1 = [[1,2],[3,7],[7,1],[10,3]]
-e2 = [[2,4],[3,7],[8,3]]
-e3 = [[2,1],[3,7],[9,7]]
-e4 = [[7,8],[10,4]]
-e5 = [[1,2],[2,3],[3,4],[4,5],[5,6],[9,1]]
-
-data = [[1,e1],[-1,e2],[1,e3],[1,e4],[-1,e5]]
+print("treated data = " + str(treatedData))
 
 
 

@@ -38,16 +38,27 @@ def merge(vectors):
 
 
 # Number of examples we want in our training set.
-nbExamples = 300
+nbExamples = 4000
+
+# Total number of descriptors per example
+nbDescript = 2
+
+# Place of the constante 1 in each example : it
+# permits to include the hyperplan constant to the
+# vector of parameters
+
+hypPlace = nbDescript + 2
 
 # Set of generated data for training.
-trainingSet = sgd.generateData(nbExamples)
+trainingSet, trainaA,trainoA, trainaB, trainoB = sgd.generateData(nbExamples)
+trainingSet = std.dataPreprocessing(trainingSet,hypPlace)
 
 # Number of examples we want in our training set.
-nbTestingData = 120
+nbTestingData = 1600
 
 # Set of generated data for testing.
-testingSet = sgd.generateData(nbTestingData)
+testingSet, testaA, testoA, testaB, testoB = sgd.generateData(nbTestingData)
+testingSet = std.dataPreprocessing(testingSet,hypPlace)
 
 # Pre-processing of the data (normalisation and centration).
 #data = tools.dataPreprocessing(data)
@@ -163,15 +174,28 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
             else:
                 print('# We performed the epoch : ' + str(self.epoch) + '.')
                 if (vector == "stop"):
-                    print("# The vecotr that achieve the convergence is : " + str(self.paramVector))
+                    print("# The vector that achieve the convergence is : " + str(self.paramVector))
                     # Plot the error on the training set
+                    plt.figure(1)
                     plt.plot([i for i in range(self.epoch-1)],self.testingErrors,'b')
                     plt.plot([i for i in range(self.epoch-1)],self.trainingErrors,'r')
                     plt.show()
+                    # Plot the training set and the hyperplan
+                    plt.figure(2)
+                    plt.scatter(trainaA,trainoA,s=10,c='r',marker='*')
+                    plt.scatter(trainaB,trainoB,s=10,c='b',marker='o')
+                    plt.plot([0,10],[10,0],'orange')
+                    w1 = self.paramVector.get(1,0)
+                    w2 = self.paramVector.get(2,0)
+                    b = self.paramVector.get(hypPlace,0)
+                    i1 = -b/w2
+                    i2 = (-10*w1-b)/w2
+                    plt.plot([0,10],[i1,i2],'crimson')
+                    plt.show()
             if (realComputation or (self.epoch == 1)):
                 # Compute the error made with that vector of parameters on the testing set
-                self.testingErrors.append(sgd.error(self.oldParam,0.5,testingSet,nbTestingData))
-                self.trainingErrors.append(sgd.error(self.oldParam,0.5,trainingSet,nbExamples))
+                self.testingErrors.append(sgd.error(self.oldParam,0.1,testingSet,nbTestingData,hypPlace))
+                self.trainingErrors.append(sgd.error(self.oldParam,0.1,trainingSet,nbExamples,hypPlace))
                 print('# The merged vector is : ' + vector + '.')
             if (self.epoch == nbMaxCall):
                 print('We performed the maximum number of iterations.')

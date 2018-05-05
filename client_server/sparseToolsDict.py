@@ -2,8 +2,7 @@
 #       Sparse version of the library tools with dictionnaries.        #
 ########################################################################
 
-from __builtin__ import unicode
-
+import math
 
 
 
@@ -45,7 +44,6 @@ def sparse_vsum(spVec1, spVec2):
 def sparse_vsous(spVec1, spVec2):
     def opp(x):
         return -x
-
     return sparse_vsum(spVec1, sparse_map(opp, spVec2))
 
 
@@ -61,10 +59,35 @@ def sparse_vdiv(spVec1, spVec2):
 
 # each component of u is multiplied by a
 def sparse_mult(a,spVec1):
+    multVec = {}
     for key, value in spVec1.items():
         if (key != -1):
-            spVec1[key] = a*value
-    return spVec1
+            multVec[key] = a*value
+        else:
+            multVec[key] = value
+    return multVec
+
+
+# Retrieve the label of a dictionary if it exists
+
+def take_out_label(spVec):
+    r = dict(spVec)
+    try:
+        del r[-1]
+    except KeyError:
+        pass
+    return r
+
+# Retrieve the data with key hypPlace if it exists
+
+def take_out(spVec,hypPlace):
+    r = dict(spVec)
+    try:
+        del r[hypPlace]
+    except KeyError:
+        pass
+    return r
+
 
 ####################################################################
 # Each element of the training set is a list of the form :
@@ -106,14 +129,6 @@ def str2dict(s):
 # Convert a data set (list of dictionaries) to a
 
 
-def take_out_label(spVec):
-    r = dict(spVec)
-    try:
-        del r[-1]
-    except KeyError:
-        pass
-    return r
-
 def datadict2Sstr(data):
     dataStr =  ""
     for d in data:
@@ -135,3 +150,83 @@ def str2datadict(strData):
         dict[-1] = label
         frame.append(dict)
     return frame
+
+
+
+
+
+
+
+
+
+
+
+
+####################################################################
+# Treat the data : normalise and center each example. This way,
+# examples with huge norms don't have more importance than the
+# others.
+####################################################################
+
+
+
+# Process the treatment on the set data.
+
+def dataPreprocessing(data,hypPlace):
+
+    n = len(data)
+
+    # Computation of the average for each variable in the example
+    moy = {}
+
+    for k in range(n):
+        example = take_out_label(data[k])
+        moy = sparse_vsum(moy,example)
+
+    def div(x):
+        return float(x)/n
+
+    moy = sparse_map(div,moy)
+
+
+    #print('')
+    #print("Le vecteur des moyennes est : " +str(moy))
+
+
+
+    # Computation of the deviation
+    sigma = {}
+
+    for k in range(n):
+
+        example = take_out_label(data[k])
+        dictDiff = sparse_vsous(example,moy)
+
+        def square(x):
+            return x*x
+
+        dictSquare = sparse_map(square,dictDiff)
+
+        sigma = sparse_vsum(dictSquare,sigma)
+
+
+    def sig(x):
+        return math.sqrt((1./n)*x)
+
+    sigma = sparse_map(sig,sigma)
+
+    #print("Le vecteur des ecarts-types est : " + str(sigma))
+    #print('')
+
+
+    for k in range(n):
+        label = data[k].get(-1,0)
+        example = take_out_label(data[k])
+        sous = sparse_vsous(example,moy)
+        treatedEx = sparse_vdiv(sous,sigma)
+        treatedEx[-1] = label
+        treatedEx[hypPlace] = 1
+        data[k] = treatedEx
+
+    return data
+

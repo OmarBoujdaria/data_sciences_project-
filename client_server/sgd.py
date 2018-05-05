@@ -22,7 +22,7 @@ import sparseToolsDict as std
 
 # d is the double of the distance of each point in the square to the
 # separator hyperplan.
-d = 1
+d = 2
 
 # u is a hyperplan's orthogonal vector.
 u = {1:1,1:1}
@@ -75,7 +75,7 @@ def generateData(nbData):
 
     trainingSet = A+B
 
-    return trainingSet
+    return trainingSet,absA,ordA,absB,ordB
 
 
 
@@ -103,7 +103,7 @@ def sample(set,numSamples):
 
     # Sample the data set on which complete the learning phase
     sampleSize = 0
-    while (sampleSize < numSamples):
+    while ((sampleSize < numSamples) and (sampleSize < n)):
         s = random.randint(0, n - sampleSize - 1)
         dataSample.append(cpyData[s])
         del cpyData[s]
@@ -126,13 +126,14 @@ def sample(set,numSamples):
 #       -cost : the cost computed on sample.
 ########################################################################
 
-def error(w,l,sample,sampleSize):
-    norm =  (l/2)*std.sparse_dot(w,w)
+def error(w,l,sample,sampleSize,hypPlace):
+    norm =  l*std.sparse_dot(w,w)
     sum = 0
     for i in range(sampleSize):
         label = sample[i].get(-1,0)
-        example = std.take_out_label(sample[i])
-        sum += max(0,1-label*std.sparse_dot(w,example))
+        cste = sample[i].get(hypPlace,0)
+        example = std.take_out(std.take_out_label(sample[i]),hypPlace)
+        sum += max(0,1-label*(std.sparse_dot(w,example)+cste))
     cost = norm + sum
     return cost
 
@@ -151,13 +152,15 @@ def error(w,l,sample,sampleSize):
 #        sample.
 ########################################################################
 
-def der_error(w,l,sample,sampleSize):
+def der_error(w,l,sample,sampleSize,hypPlace):
     d = std.sparse_mult(l, w)
     sum = {}
     for i in range(sampleSize):
         label = sample[i].get(-1,0)
-        example = std.take_out_label(sample[i])
-        if (label*std.sparse_dot(w,example) <= 1):
+        cste = sample[i].get(hypPlace,0)
+        example = std.take_out(std.take_out_label(sample[i]),hypPlace)
+        if (label*(std.sparse_dot(w,example) + cste) <= 1):
+            example[hypPlace] = cste
             sum = std.sparse_vsum(sum,std.sparse_mult(label,example))
     dcost = std.sparse_vsum(d,sum)
     return dcost
@@ -179,13 +182,13 @@ def der_error(w,l,sample,sampleSize):
 
 
 
-def descent(data,w,numSamples,step,l):
+def descent(data,w,numSamples,step,l,hypPlace):
 
     # Sample of the data set.
     dataSample,sampleSize = sample(data,numSamples)
 
     # Derivative of the cost evaluated on dataSample.
-    d = der_error(w,l,dataSample,sampleSize)
+    d = der_error(w,l,dataSample,sampleSize,hypPlace)
 
     # Modification of the parameter vector w.
     w = std.sparse_vsous(w,std.sparse_mult(step,d))
