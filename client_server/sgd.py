@@ -1,6 +1,7 @@
 import random
 import sparseToolsDict as std
-
+import math
+#import matplotlib.pyplot as plt
 
 
 
@@ -25,13 +26,13 @@ import sparseToolsDict as std
 d = 2
 
 # u is a hyperplan's orthogonal vector.
-u = {1:1,1:1}
+u = {1:1,2:1}
 
 def generateData(nbData):
 
     # A and B denote each a different class, respectively associated
     # to the labels 1 and -1.
-    A= []
+    A = []
     B = []
 
     # Number of examples we kept for our training set.
@@ -48,18 +49,22 @@ def generateData(nbData):
     cardB = 0
 
     while (nbExamples < nbData):
-        a = random.randint(0,100)/10
-        b = random.randint(0,100)/10
+        a = random.randint(0,50)/10
+        b = random.randint(0,50)/10
+        sign = random.random()
+        if (sign >= 0.5):
+            a = -a;
+            b = -b;
         genvect = {1:a,2:b}
-        dist = abs((std.sparse_dot(u,genvect))/(std.sparse_dot(u,u))-5)
+        dist = abs((std.sparse_dot(u,genvect))/(math.sqrt(std.sparse_dot(u,u))))
         valide = (d==0) or ((d!=0) & (dist >= d))
-        if (a > 10-b) & valide:
+        if (b > -a) & valide:
             A.append({-1:1,1:a,2:b})
             absA.append(a)
             ordA.append(b)
             nbExamples += 1
             cardA += 1
-        elif (b < 10-b) & valide:
+        elif (b < -a) & valide:
             B.append(({-1:-1,1:a,2:b}))
             absB.append(a)
             ordB.append(b)
@@ -70,7 +75,7 @@ def generateData(nbData):
 
     #plt.scatter(absA,ordA,s=10,c='r',marker='*')
     #plt.scatter(absB,ordB,s=10,c='b',marker='o')
-    #plt.plot([0,10],[10,0],'orange')
+    #plt.plot([-5,5],[5,-5],'orange')
     #plt.show()
 
     trainingSet = A+B
@@ -79,7 +84,7 @@ def generateData(nbData):
 
 
 
-#generateData(200)
+generateData(2000)
 
 
 
@@ -131,9 +136,8 @@ def error(w,l,sample,sampleSize,hypPlace):
     sum = 0
     for i in range(sampleSize):
         label = sample[i].get(-1,0)
-        cste = sample[i].get(hypPlace,0)
-        example = std.take_out(std.take_out_label(sample[i]),hypPlace)
-        sum += max(0,1-label*(std.sparse_dot(w,example)+cste))
+        example = std.take_out_label(sample[i])
+        sum += max(0,1-label*(std.sparse_dot(w,example)))
     cost = norm + sum
     return cost
 
@@ -157,10 +161,8 @@ def der_error(w,l,sample,sampleSize,hypPlace):
     sum = {}
     for i in range(sampleSize):
         label = sample[i].get(-1,0)
-        cste = sample[i].get(hypPlace,0)
-        example = std.take_out(std.take_out_label(sample[i]),hypPlace)
-        if (label*(std.sparse_dot(w,example) + cste) <= 1):
-            example[hypPlace] = cste
+        example = std.take_out_label(sample[i])
+        if (label*(std.sparse_dot(w,example)) <= 1):
             sum = std.sparse_vsum(sum,std.sparse_mult(label,example))
     dcost = std.sparse_vsum(d,sum)
     return dcost

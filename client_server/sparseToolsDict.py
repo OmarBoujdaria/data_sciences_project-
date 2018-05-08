@@ -225,7 +225,7 @@ def dataPreprocessing(data,hypPlace):
         sous = sparse_vsous(example,moy)
         treatedEx = sparse_vdiv(sous,sigma)
         treatedEx[-1] = label
-        treatedEx[hypPlace] = 1
+        treatedEx[hypPlace] = -1
         data[k] = treatedEx
 
     return data

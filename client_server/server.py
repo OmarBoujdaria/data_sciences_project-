@@ -65,7 +65,8 @@ testingSet = std.dataPreprocessing(testingSet,hypPlace)
 
 # Initial vector to process the stochastic gradient descent :
 # random generated.
-w0 = {1:0.21}                  #one element, to start the computation
+w0 = {1:0.21,2:0.75,hypPlace:0.011}                  #one element, to start the computation
+normw0 = math.sqrt(std.sparse_dot(w0,w0))
 nbParameters = len(trainingSet[0])-1  #-1 because we don't count the label
 
 
@@ -141,7 +142,8 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
             vector = merge(self.vectors)
             diff = std.sparse_vsous(self.oldParam,vector)
             normDiff = math.sqrt(std.sparse_dot(diff,diff))
-            if ((normDiff <= 10**(-3)) or (self.epoch > nbMaxCall)):
+            normGradW = math.sqrt(std.sparse_dot(vector,vector))
+            if ((normDiff <= 10**(-3)) or (self.epoch > nbMaxCall) or (normGradW <= 10**(-3)*normw0)):
                 self.paramVector = vector
                 vector = 'stop'
             else:
@@ -184,13 +186,13 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
                     plt.figure(2)
                     plt.scatter(trainaA,trainoA,s=10,c='r',marker='*')
                     plt.scatter(trainaB,trainoB,s=10,c='b',marker='o')
-                    plt.plot([0,10],[10,0],'orange')
+                    plt.plot([-5,5],[5,-5],'orange')
                     w1 = self.paramVector.get(1,0)
                     w2 = self.paramVector.get(2,0)
                     b = self.paramVector.get(hypPlace,0)
-                    i1 = -b/w2
-                    i2 = (-10*w1-b)/w2
-                    plt.plot([0,10],[i1,i2],'crimson')
+                    i1 = (5*w1-b)/w2
+                    i2 = (-5*w1-b)/w2
+                    plt.plot([-5,5],[i1,i2],'crimson')
                     plt.show()
             if (realComputation or (self.epoch == 1)):
                 # Compute the error made with that vector of parameters on the testing set
