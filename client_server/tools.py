@@ -1,6 +1,6 @@
 ####################################################################
 # A set of functions that are used among the different functions in
-# sgd.py, client.py and server.py .
+# sgd.py, client.py and serverGen.py .
 ####################################################################
 
 

@@ -89,6 +89,15 @@ def take_out(spVec,hypPlace):
     return r
 
 
+# Merge all the sparse vectors in a list.
+def merge(vectors,nbClients):
+    vmoy = {}
+    for spVec in vectors:
+        vmoy = sparse_vsum(vmoy, spVec)
+    vmoy = sparse_mult(1. / nbClients, vmoy)
+    return vmoy
+
+
 ####################################################################
 # Each element of the training set is a list of the form :
 # List(label : int, example : List(float). In order to send and

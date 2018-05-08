@@ -15,68 +15,73 @@ import route_guide_pb2
 import route_guide_pb2_grpc
 
 import threading
-import numpy
+
+import matplotlib.pyplot as plt
 
 import sgd
 import sparseToolsDict as std
 
-import pickle
 
-_ONE_DAY_IN_SECONDS = 24 * 60 * 60
+_ONE_DAY_IN_SECONDS = 24*60*60
 
 """ Define the number of clients you want to use."""
 nbClients = 2
 
 
 
-# Place of the constante 1 in each example : it
-# permits to include the hyperplan constant to the
-# vector of parameters.
+def merge(vectors):
+    vmoy = {}
+    for spVec in vectors:
+        vmoy = std.sparse_vsum(vmoy,spVec)
+    vmoy = std.sparse_mult(1./nbClients,vmoy)
+    return vmoy
 
-hypPlace = 10**6
-
-
-# Importation of the data
-
-def treatData(data):
-    for i in range(len(data)):
-        if (data[i].get(-1,0) == [[1]]):
-            data[i][-1] = 1
-    return data
-
-with open('/home/kiwi974/cours/epfl/system_for_data_science/project/data/data12000', 'rb') as f:
-    data = treatData(pickle.load(f))
 
 # Number of examples we want in our training set.
-nbExamples = 10000
+nbExamples = 4000
 
-# Number of examples we want in our testing set.
-nbTestingData = 2000
+# Total number of descriptors per example
+nbDescript = 2
 
-# Define the training set.
-trainingSet = data[:10000]
+# Place of the constante 1 in each example : it
+# permits to include the hyperplan constant to the
+# vector of parameters
+
+hypPlace = nbDescript + 2
+
+# Set of generated data for training.
+trainingSet, trainaA,trainoA, trainaB, trainoB = sgd.generateData(nbExamples)
 trainingSet = std.dataPreprocessing(trainingSet,hypPlace)
 
-# Define the testing set.
-testingSet = data[10000:]
-testingSet = std.dataPreprocessing(testingSet, hypPlace)
+# Number of examples we want in our training set.
+nbTestingData = 1600
+
+# Set of generated data for testing.
+testingSet, testaA, testoA, testaB, testoB = sgd.generateData(nbTestingData)
+testingSet = std.dataPreprocessing(testingSet,hypPlace)
 
 # Pre-processing of the data (normalisation and centration).
-# data = tools.dataPreprocessing(data)
+#data = tools.dataPreprocessing(data)
 
 # Initial vector to process the stochastic gradient descent :
 # random generated.
-w0 = {1: 0.21, 2: 0.75, hypPlace: 0.011}  # one element, to start the computation
-normw0 = math.sqrt(std.sparse_dot(w0, w0))
-nbParameters = len(trainingSet[0]) - 1  # -1 because we don't count the label
+w0 = {1:0.21,2:0.75,hypPlace:0.011}                  #one element, to start the computation
+normw0 = math.sqrt(std.sparse_dot(w0,w0))
+nbParameters = len(trainingSet[0])-1  #-1 because we don't count the label
+
 
 # Maximum number of epochs we allow.
 nbMaxCall = 50
 
 
-class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
-    """ We define attributes of the class to perform the computations."""
 
+
+
+class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
+
+
+
+    """ We define attributes of the class to perform the computations."""
     def __init__(self):
         # An iterator that will count the number of clients that contact the
         # server at each epoch.
@@ -103,6 +108,9 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
         # Error on the testing set, computed at each cycle of the server
         self.testingErrors = []
 
+
+
+
     def GetFeature(self, request, context):
 
         ######################################################################
@@ -115,7 +123,7 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
         else:
             self.vectors.append(std.str2dict(request.poids))
         self.enter_condition = (self.iterator == nbClients)
-        waiting.wait(lambda: self.enter_condition)
+        waiting.wait(lambda : self.enter_condition)
 
         self.printerThreadName = threading.current_thread().name
 
@@ -130,12 +138,12 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
             vector = std.datadict2Sstr(trainingSet)
         elif (request.poids == 'getw0'):
             vector = std.dict2str(w0)
-        else:
-            vector = std.merge(self.vectors,nbClients)
-            diff = std.sparse_vsous(self.oldParam, vector)
-            normDiff = math.sqrt(std.sparse_dot(diff, diff))
-            normGradW = math.sqrt(std.sparse_dot(vector, vector))
-            if ((normDiff <= 10 ** (-3)) or (self.epoch > nbMaxCall) or (normGradW <= 10 ** (-3) * normw0)):
+        else :
+            vector = merge(self.vectors)
+            diff = std.sparse_vsous(self.oldParam,vector)
+            normDiff = math.sqrt(std.sparse_dot(diff,diff))
+            normGradW = math.sqrt(std.sparse_dot(vector,vector))
+            if ((normDiff <= 10**(-3)) or (self.epoch > nbMaxCall) or (normGradW <= 10**(-3)*normw0)):
                 self.paramVector = vector
                 vector = 'stop'
             else:
@@ -146,11 +154,11 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
         ######################################################################
         # Section 3 : wait that all the threads pass the computation area, and
         # store the new computed vector.
-
+                 
         self.iterator -= 1
 
         self.exit_condition = (self.iterator == 0)
-        waiting.wait(lambda: self.exit_condition)
+        waiting.wait(lambda : self.exit_condition)
 
         realComputation = (request.poids != 'pret') and (request.poids != 'getw0') and (vector != 'stop')
 
@@ -169,10 +177,27 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
                 print('# We performed the epoch : ' + str(self.epoch) + '.')
                 if (vector == "stop"):
                     print("# The vector that achieve the convergence is : " + str(self.paramVector))
+                    # Plot the error on the training set
+                    plt.figure(1)
+                    plt.plot([i for i in range(self.epoch-1)],self.testingErrors,'b')
+                    plt.plot([i for i in range(self.epoch-1)],self.trainingErrors,'r')
+                    plt.show()
+                    # Plot the training set and the hyperplan
+                    plt.figure(2)
+                    plt.scatter(trainaA,trainoA,s=10,c='r',marker='*')
+                    plt.scatter(trainaB,trainoB,s=10,c='b',marker='o')
+                    plt.plot([-5,5],[5,-5],'orange')
+                    w1 = self.paramVector.get(1,0)
+                    w2 = self.paramVector.get(2,0)
+                    b = self.paramVector.get(hypPlace,0)
+                    i1 = (5*w1-b)/w2
+                    i2 = (-5*w1-b)/w2
+                    plt.plot([-5,5],[i1,i2],'crimson')
+                    plt.show()
             if (realComputation or (self.epoch == 1)):
                 # Compute the error made with that vector of parameters on the testing set
-                self.testingErrors.append(sgd.error(self.oldParam, 0.1, testingSet, nbTestingData, hypPlace))
-                self.trainingErrors.append(sgd.error(self.oldParam, 0.1, trainingSet, nbExamples, hypPlace))
+                self.testingErrors.append(sgd.error(self.oldParam,0.1,testingSet,nbTestingData,hypPlace))
+                self.trainingErrors.append(sgd.error(self.oldParam,0.1,trainingSet,nbExamples,hypPlace))
                 print('# The merged vector is : ' + vector + '.')
             if (self.epoch == nbMaxCall):
                 print('We performed the maximum number of iterations.')
@@ -189,12 +214,15 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
         # the threads.
 
         self.vectors = []
-        waiting.wait(lambda: (self.vectors == []))
+        waiting.wait(lambda : (self.vectors == []))
 
         ######################################################################
 
-        # time.sleep(1)
+        #time.sleep(1)
         return route_guide_pb2.Vector(poids=vector)
+
+
+
 
 
 def serve():

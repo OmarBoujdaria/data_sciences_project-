@@ -51,7 +51,7 @@ def guide_get_feature(stub):
     vect = stub.GetFeature(route_guide_pb2.Vector(poids="getw0"))
 
     # The depreciation of the SVM norm cost
-    l = 0.01
+    l = 0.5
 
     # The constant step to perform the gradient descent on the learning training.
     step = 0.05
