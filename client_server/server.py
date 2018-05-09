@@ -44,21 +44,33 @@ def treatData(data):
             data[i][-1] = 1
     return data
 
-with open('/home/kiwi974/cours/epfl/system_for_data_science/project/data/data12000', 'rb') as f:
+print("Starting of the server...")
+
+with open('/home/kiwi974/cours/epfl/system_for_data_science/project/data/data6000new', 'rb') as f:
     data = treatData(pickle.load(f))
 
 # Number of examples we want in our training set.
-nbExamples = 10000
+nbExamples = 50
 
 # Number of examples we want in our testing set.
-nbTestingData = 2000
+nbTestingData = 50
+
+print("Building of the training set...")
 
 # Define the training set.
-trainingSet = data[:10000]
+trainingSet = data[:nbExamples]
+
+print("Training data pre-processing...")
+
 trainingSet = std.dataPreprocessing(trainingSet,hypPlace)
 
+print("Building of the testing set...")
+
 # Define the testing set.
-testingSet = data[10000:]
+testingSet = data[nbExamples:nbExamples+nbTestingData]
+
+print("Testing data pre-processing")
+
 testingSet = std.dataPreprocessing(testingSet, hypPlace)
 
 # Pre-processing of the data (normalisation and centration).
@@ -73,6 +85,7 @@ nbParameters = len(trainingSet[0]) - 1  # -1 because we don't count the label
 # Maximum number of epochs we allow.
 nbMaxCall = 50
 
+print("Server is ready !")
 
 class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
     """ We define attributes of the class to perform the computations."""
