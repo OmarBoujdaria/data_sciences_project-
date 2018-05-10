@@ -73,8 +73,8 @@ nbParameters = len(trainingSet[0])-1  #-1 because we don't count the label
 # Maximum number of epochs we allow.
 nbMaxCall = 50
 
-
-
+# Way to work
+way2work = "sync"
 
 
 class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
@@ -117,15 +117,16 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
         # Section 1 : wait for all the clients -> get their vectors and
         # appoint one of them as the printer.
 
-        self.iterator += 1
-        if (request.poids == "pret" or request.poids == "getw0"):
-            self.vectors.append(request.poids)
-        else:
-            self.vectors.append(std.str2dict(request.poids))
-        self.enter_condition = (self.iterator == nbClients)
-        waiting.wait(lambda : self.enter_condition)
+        if (way2work == "sync"):
+            self.iterator += 1
+            if (request.poids == "pret" or request.poids == "getw0"):
+                self.vectors.append(request.poids)
+            else:
+                self.vectors.append(std.str2dict(request.poids))
+            self.enter_condition = (self.iterator == nbClients)
+            waiting.wait(lambda : self.enter_condition)
 
-        self.printerThreadName = threading.current_thread().name
+            self.printerThreadName = threading.current_thread().name
 
         ######################################################################
 
@@ -155,70 +156,71 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
         ######################################################################
         # Section 3 : wait that all the threads pass the computation area, and
         # store the new computed vector.
-                 
-        self.iterator -= 1
 
-        self.exit_condition = (self.iterator == 0)
-        waiting.wait(lambda : self.exit_condition)
+        if (way2work == "sync"):
+            self.iterator -= 1
 
-        realComputation = (request.poids != 'pret') and (request.poids != 'getw0') and (vector != 'stop')
+            self.exit_condition = (self.iterator == 0)
+            waiting.wait(lambda : self.exit_condition)
 
-        if (realComputation):
-            self.oldParam = std.str2dict(vector)
+            realComputation = (request.poids != 'pret') and (request.poids != 'getw0') and (vector != 'stop')
 
-        ######################################################################
+            if (realComputation):
+                self.oldParam = std.str2dict(vector)
 
-        ###################### PRINT OF THE CURRENT STATE ######################
-        if (threading.current_thread().name == self.printerThreadName):
-            print('')
-            print('############################################################')
-            if (self.epoch == 0):
-                print('# We sent the data to the clients.')
-            else:
-                print('# We performed the epoch : ' + str(self.epoch) + '.')
-                if (vector == "stop"):
-                    print("# The vector that achieve the convergence is : " + str(self.paramVector))
-                    # Plot the error on the training set
-                    plt.figure(1)
-                    plt.plot([i for i in range(self.epoch-1)],self.testingErrors,'b')
-                    plt.plot([i for i in range(self.epoch-1)],self.trainingErrors,'r')
-                    plt.show()
-                    # Plot the training set and the hyperplan
-                    plt.figure(2)
-                    plt.scatter(trainaA,trainoA,s=10,c='r',marker='*')
-                    plt.scatter(trainaB,trainoB,s=10,c='b',marker='o')
-                    plt.plot([-5,5],[5,-5],'orange')
-                    w1 = self.paramVector.get(1,0)
-                    w2 = self.paramVector.get(2,0)
-                    b = self.paramVector.get(hypPlace,0)
-                    i1 = (5*w1-b)/w2
-                    i2 = (-5*w1-b)/w2
-                    plt.plot([-5,5],[i1,i2],'crimson')
-                    plt.show()
-            if (realComputation or (self.epoch == 1)):
-                # Compute the error made with that vector of parameters on the testing set
-                self.testingErrors.append(sgd.error(self.oldParam,0.1,testingSet,nbTestingData,hypPlace))
-                self.trainingErrors.append(sgd.error(self.oldParam,0.1,trainingSet,nbExamples,hypPlace))
-                print('# The merged vector is : ' + vector + '.')
-            if (self.epoch == nbMaxCall):
-                print('We performed the maximum number of iterations.')
-                print('The descent has been stopped.')
-            print('############################################################')
-            print('')
-            self.epoch += 1
-        ############################### END OF PRINT ###########################
+            ######################################################################
 
-        ######################################################################
+            ###################### PRINT OF THE CURRENT STATE ######################
+            if (threading.current_thread().name == self.printerThreadName):
+                print('')
+                print('############################################################')
+                if (self.epoch == 0):
+                    print('# We sent the data to the clients.')
+                else:
+                    print('# We performed the epoch : ' + str(self.epoch) + '.')
+                    if (vector == "stop"):
+                        print("# The vector that achieve the convergence is : " + str(self.paramVector))
+                        # Plot the error on the training set
+                        plt.figure(1)
+                        plt.plot([i for i in range(self.epoch-1)],self.testingErrors,'b')
+                        plt.plot([i for i in range(self.epoch-1)],self.trainingErrors,'r')
+                        plt.show()
+                        # Plot the training set and the hyperplan
+                        plt.figure(2)
+                        plt.scatter(trainaA,trainoA,s=10,c='r',marker='*')
+                        plt.scatter(trainaB,trainoB,s=10,c='b',marker='o')
+                        plt.plot([-5,5],[5,-5],'orange')
+                        w1 = self.paramVector.get(1,0)
+                        w2 = self.paramVector.get(2,0)
+                        b = self.paramVector.get(hypPlace,0)
+                        i1 = (5*w1-b)/w2
+                        i2 = (-5*w1-b)/w2
+                        plt.plot([-5,5],[i1,i2],'crimson')
+                        plt.show()
+                if (realComputation or (self.epoch == 1)):
+                    # Compute the error made with that vector of parameters on the testing set
+                    self.testingErrors.append(sgd.error(self.oldParam,0.1,testingSet,nbTestingData,hypPlace))
+                    self.trainingErrors.append(sgd.error(self.oldParam,0.1,trainingSet,nbExamples,hypPlace))
+                    print('# The merged vector is : ' + vector + '.')
+                if (self.epoch == nbMaxCall):
+                    print('We performed the maximum number of iterations.')
+                    print('The descent has been stopped.')
+                print('############################################################')
+                print('')
+                self.epoch += 1
+            ############################### END OF PRINT ###########################
 
-        ######################################################################
-        # Section 4 : empty the storage list of the vectors, and wait for all
-        # the threads.
+            ######################################################################
 
-        self.vectors = []
-        waiting.wait(lambda : (self.vectors == []))
+            ######################################################################
+            # Section 4 : empty the storage list of the vectors, and wait for all
+            # the threads.
 
-        ######################################################################
+            self.vectors = []
+            waiting.wait(lambda : (self.vectors == []))
 
+            ######################################################################
+    
         #time.sleep(1)
         return route_guide_pb2.Vector(poids=vector)
 

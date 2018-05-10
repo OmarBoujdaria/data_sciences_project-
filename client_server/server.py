@@ -48,10 +48,10 @@ with open('/home/kiwi974/cours/epfl/system_for_data_science/project/data/data600
     data = treatData(pickle.load(f))
 
 # Number of examples we want in our training set.
-nbExamples = 50
+nbExamples = 200
 
 # Number of examples we want in our testing set.
-nbTestingData = 50
+nbTestingData = 200
 
 print("Building of the training set...")
 
