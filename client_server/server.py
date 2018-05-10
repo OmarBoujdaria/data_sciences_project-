@@ -10,12 +10,10 @@ import time
 import waiting
 
 import grpc
-import random
 import route_guide_pb2
 import route_guide_pb2_grpc
 
 import threading
-import numpy
 
 import sgd
 import sparseToolsDict as std
@@ -85,6 +83,9 @@ nbParameters = len(trainingSet[0]) - 1  # -1 because we don't count the label
 # Maximum number of epochs we allow.
 nbMaxCall = 50
 
+# The constant step to perform the gradient descent on the learning training.
+step = 0.05
+
 print("Server is ready !")
 
 class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
@@ -144,7 +145,8 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
         elif (request.poids == 'getw0'):
             vector = std.dict2str(w0)
         else:
-            vector = std.merge(self.vectors,nbClients)
+            grad_vector = std.merge(self.vectors,nbClients)
+            vector = std.sparse_vsous(self.oldParam,grad_vector)
             diff = std.sparse_vsous(self.oldParam, vector)
             normDiff = math.sqrt(std.sparse_dot(diff, diff))
             normGradW = math.sqrt(std.sparse_dot(vector, vector))
