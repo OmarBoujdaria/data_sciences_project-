@@ -98,6 +98,15 @@ def merge(vectors,nbClients):
     return vmoy
 
 
+# Update the vector of parameters according to the delay
+def asynchronousUpdate(delayedParam,gradParam,param,l,step):
+    diff = sparse_vsous(delayedParam,param)
+    secondOrder = sparse_mult(l,diff)
+    globalGrad = sparse_vsum(gradParam,secondOrder)
+    newParam = delayedParam - step*globalGrad
+    return newParam
+
+
 ####################################################################
 # Each element of the training set is a list of the form :
 # List(label : int, example : List(float). In order to send and

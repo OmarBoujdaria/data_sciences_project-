@@ -74,8 +74,13 @@ nbParameters = len(trainingSet[0])-1  #-1 because we don't count the label
 nbMaxCall = 50
 
 # Way to work
-way2work = "sync"
+way2work = "async"
 
+# Step of the gradient descent
+step = 0.05
+
+# The depreciation of the SVM norm cost
+l = 0.5
 
 class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
 
@@ -140,8 +145,12 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
         elif (request.poids == 'getw0'):
             vector = std.dict2str(w0)
         else :
-            grad_vector = std.merge(self.vectors, nbClients)
-            vector = std.sparse_vsous(self.oldParam, grad_vector)
+            if (way2work == "sync"):
+                grad_vector = std.merge(self.vectors, nbClients)
+                vector = std.sparse_vsous(self.oldParam, grad_vector)
+            else:
+                grad_vector = std.str2dict(request.poids)
+                vector = std.asynchronousUpdate(self.oldParam,grad_vector,oldparam,l,step)
             diff = std.sparse_vsous(self.oldParam,vector)
             normDiff = math.sqrt(std.sparse_dot(diff,diff))
             normGradW = math.sqrt(std.sparse_dot(vector,vector))
@@ -220,7 +229,7 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
             waiting.wait(lambda : (self.vectors == []))
 
             ######################################################################
-    
+
         #time.sleep(1)
         return route_guide_pb2.Vector(poids=vector)
 
