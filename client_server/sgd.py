@@ -49,12 +49,16 @@ def generateData(nbData):
     cardB = 0
 
     while (nbExamples < nbData):
-        a = random.randint(0,50)/10
-        b = random.randint(0,50)/10
+        a = random.randint(0,100)/10
+        b = random.randint(0,100)/10
         sign = random.random()
-        if (sign >= 0.5):
-            a = -a;
-            b = -b;
+        if (sign <= 0.25):
+            a = -a
+            b = -b
+        elif ((0.25 <= sign) & (sign <= 0.5)):
+            b = -b
+        elif ((0.5 <= sign) & (sign <= 0.75)):
+            a = -a
         genvect = {1:a,2:b}
         dist = abs((std.sparse_dot(u,genvect))/(math.sqrt(std.sparse_dot(u,u))))
         valide = (d==0) or ((d!=0) & (dist >= d))
@@ -75,7 +79,7 @@ def generateData(nbData):
 
     #plt.scatter(absA,ordA,s=10,c='r',marker='*')
     #plt.scatter(absB,ordB,s=10,c='b',marker='o')
-    #plt.plot([-5,5],[5,-5],'orange')
+    #plt.plot([-10,10],[10,-10],'orange')
     #plt.show()
 
     trainingSet = A+B
@@ -84,7 +88,7 @@ def generateData(nbData):
 
 
 
-generateData(2000)
+generateData(200)
 
 
 

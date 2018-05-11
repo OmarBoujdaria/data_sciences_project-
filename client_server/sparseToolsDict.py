@@ -287,19 +287,19 @@ def printTrace(epoch,vector,paramVector,testingErrors,trainingErrors,trainaA,tra
             plt.figure(2)
             plt.scatter(trainaA, trainoA, s=10, c='r', marker='*')
             plt.scatter(trainaB, trainoB, s=10, c='b', marker='o')
-            plt.plot([-5, 5], [5, -5], 'orange')
+            plt.plot([-10, 10], [10, -10], 'orange')
             w1 = paramVector.get(1, 0)
             w2 = paramVector.get(2, 0)
             b = paramVector.get(hypPlace, 0)
-            i1 = (5 * w1 - b) / w2
-            i2 = (-5 * w1 - b) / w2
-            plt.plot([-5, 5], [i1, i2], 'crimson')
+            i1 = (10 * w1 - b) / w2
+            i2 = (-10 * w1 - b) / w2
+            plt.plot([-10,10], [i1, i2], 'crimson')
             plt.show()
             print("We went out of the loop because : ")
-            if (normDiff <= 10 ** (-3) * normPrecW):
-                print("     normDiff <= 10 ** (-3) * normPrecW")
-            elif (normGradW <= 10 ** (-3) * normw0):
-                print("     normGradW <= 10 ** (-3) * normw0")
+            if (normDiff <= 10 ** (-8) * normPrecW):
+                print("     normDiff <= 10 ** (-8) * normPrecW")
+            elif (normGradW <= 10 ** (-8) * normw0):
+                print("     normGradW <= 10 ** (-8) * normw0")
             else:
                 print("     self.epoch > nbMaxCall")
         if (realComputation or (epoch == 1)):

@@ -29,7 +29,7 @@ nbClients = 2
 
 
 # Number of examples we want in our training set.
-nbExamples = 4000
+nbExamples = 10000
 
 # Total number of descriptors per example
 nbDescript = 2
@@ -65,7 +65,7 @@ nbParameters = len(trainingSet[0])-1  #-1 because we don't count the label
 nbMaxCall = 100
 
 # Way to work
-way2work = "async"
+way2work = "sync"
 
 # Step of the gradient descent
 step = 0.05
@@ -120,7 +120,7 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
             if (request.poids == "pret" or request.poids == "getw0"):
                 self.vectors.append(request.poids)
             else:
-                self.vectors.append(std.str2dict(request.poids))
+                self.vectors.append(std.str2dict(request.poids.split("<delay>")[0]))
             self.enter_condition = (self.iterator == nbClients)
             waiting.wait(lambda : self.enter_condition)
 

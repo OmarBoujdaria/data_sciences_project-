@@ -14,7 +14,7 @@ import sparseToolsDict as std
 
 
 # We define here the number of samples we want for each training subset.
-numSamples = 2000
+numSamples = 6000
 
 hypPlace = 4
 
@@ -72,7 +72,7 @@ def guide_get_feature(stub):
 
         it += 1
 
-        time.sleep(1.7)
+        #time.sleep(1.7)
 
     print(vect)
 
