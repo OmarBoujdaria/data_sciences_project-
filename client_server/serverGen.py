@@ -28,15 +28,6 @@ _ONE_DAY_IN_SECONDS = 24*60*60
 nbClients = 2
 
 
-
-def merge(vectors):
-    vmoy = {}
-    for spVec in vectors:
-        vmoy = std.sparse_vsum(vmoy,spVec)
-    vmoy = std.sparse_mult(1./nbClients,vmoy)
-    return vmoy
-
-
 # Number of examples we want in our training set.
 nbExamples = 4000
 
@@ -74,7 +65,7 @@ nbParameters = len(trainingSet[0])-1  #-1 because we don't count the label
 nbMaxCall = 50
 
 # Way to work
-way2work = "async"
+way2work = "sync"
 
 # Step of the gradient descent
 step = 0.05
@@ -112,6 +103,8 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
         self.trainingErrors = []
         # Error on the testing set, computed at each cycle of the server
         self.testingErrors = []
+        # Step of the descent
+        self.step = 3
 
 
 
@@ -142,19 +135,27 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
 
         if (request.poids == 'pret'):
             vector = std.datadict2Sstr(trainingSet)
+            normDiff = 0
+            normGradW = 0
+            normPrecW = 0
         elif (request.poids == 'getw0'):
             vector = std.dict2str(w0)
+            normDiff = 0
+            normGradW = 0
+            normPrecW = 0
         else :
             if (way2work == "sync"):
-                grad_vector = std.merge(self.vectors, nbClients)
-                vector = std.sparse_vsous(self.oldParam, grad_vector)
+                gradParam = std.mergeSGD(self.vectors)
+                gradParam = std.sparse_mult(self.step, gradParam)
+                vector = std.sparse_vsous(self.oldParam, gradParam)
             else:
                 grad_vector = std.str2dict(request.poids)
                 vector = std.asynchronousUpdate(self.oldParam,grad_vector,oldparam,l,step)
             diff = std.sparse_vsous(self.oldParam,vector)
             normDiff = math.sqrt(std.sparse_dot(diff,diff))
             normGradW = math.sqrt(std.sparse_dot(vector,vector))
-            if ((normDiff <= 10**(-3)) or (self.epoch > nbMaxCall) or (normGradW <= 10**(-3)*normw0)):
+            normPrecW = math.sqrt(std.sparse_dot(self.oldParam, self.oldParam))
+            if ((normDiff <= 10 ** (-8) * normPrecW) or (self.epoch > nbMaxCall) or (normGradW <= 10**(-8)*normw0)):
                 self.paramVector = vector
                 vector = 'stop'
             else:
@@ -181,42 +182,9 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
 
             ###################### PRINT OF THE CURRENT STATE ######################
             if (threading.current_thread().name == self.printerThreadName):
-                print('')
-                print('############################################################')
-                if (self.epoch == 0):
-                    print('# We sent the data to the clients.')
-                else:
-                    print('# We performed the epoch : ' + str(self.epoch) + '.')
-                    if (vector == "stop"):
-                        print("# The vector that achieve the convergence is : " + str(self.paramVector))
-                        # Plot the error on the training set
-                        plt.figure(1)
-                        plt.plot([i for i in range(self.epoch-1)],self.testingErrors,'b')
-                        plt.plot([i for i in range(self.epoch-1)],self.trainingErrors,'r')
-                        plt.show()
-                        # Plot the training set and the hyperplan
-                        plt.figure(2)
-                        plt.scatter(trainaA,trainoA,s=10,c='r',marker='*')
-                        plt.scatter(trainaB,trainoB,s=10,c='b',marker='o')
-                        plt.plot([-5,5],[5,-5],'orange')
-                        w1 = self.paramVector.get(1,0)
-                        w2 = self.paramVector.get(2,0)
-                        b = self.paramVector.get(hypPlace,0)
-                        i1 = (5*w1-b)/w2
-                        i2 = (-5*w1-b)/w2
-                        plt.plot([-5,5],[i1,i2],'crimson')
-                        plt.show()
-                if (realComputation or (self.epoch == 1)):
-                    # Compute the error made with that vector of parameters on the testing set
-                    self.testingErrors.append(sgd.error(self.oldParam,0.1,testingSet,nbTestingData,hypPlace))
-                    self.trainingErrors.append(sgd.error(self.oldParam,0.1,trainingSet,nbExamples,hypPlace))
-                    print('# The merged vector is : ' + vector + '.')
-                if (self.epoch == nbMaxCall):
-                    print('We performed the maximum number of iterations.')
-                    print('The descent has been stopped.')
-                print('############################################################')
-                print('')
+                std.printTrace(self.epoch, vector, self.paramVector, self.testingErrors, self.trainingErrors, trainaA,                               trainaB, trainoA,trainoB, hypPlace, normDiff, normGradW, normPrecW, normw0,                                          realComputation, self.oldParam,trainingSet, testingSet, nbTestingData, nbExamples,                                   nbMaxCall)
                 self.epoch += 1
+                self.step *= 0.9
             ############################### END OF PRINT ###########################
 
             ######################################################################
