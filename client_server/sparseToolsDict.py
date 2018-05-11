@@ -105,13 +105,19 @@ def mergeSGD(vectors):
     return vmoy
 
 
+
 # Update the vector of parameters according to the delay
 def asynchronousUpdate(delayedParam,gradParam,param,l,step):
     diff = sparse_vsous(delayedParam,param)
     secondOrder = sparse_mult(l,diff)
     globalGrad = sparse_vsum(gradParam,secondOrder)
-    newParam = delayedParam - step*globalGrad
+    newParam = sparse_vsous(delayedParam,sparse_mult(step,globalGrad))
     return newParam
+
+
+
+
+
 
 
 ####################################################################
@@ -274,8 +280,8 @@ def printTrace(epoch,vector,paramVector,testingErrors,trainingErrors,trainaA,tra
             print("# The vector that achieve the convergence is : " + str(paramVector))
             # Plot the error on the training set
             plt.figure(1)
-            plt.plot([i for i in range(epoch - 1)], testingErrors, 'b')
-            plt.plot([i for i in range(epoch - 1)], trainingErrors, 'r')
+            plt.plot([i for i in range(len(testingErrors))], testingErrors, 'b')
+            plt.plot([i for i in range(len(trainingErrors))], trainingErrors, 'r')
             plt.show()
             # Plot the training set and the hyperplan
             plt.figure(2)

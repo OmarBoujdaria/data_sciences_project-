@@ -60,14 +60,19 @@ def guide_get_feature(stub):
 
         print("iteration : " + str(it))
 
+        # We save the vector on which we base the computations
+        wt = std.str2dict(vect.poids)
+
         # Gradient descent on the sample.
         nw = sgd.descent(dataSampleSet, std.str2dict(vect.poids), numSamples, step, l, hypPlace)
 
         # The result is sent to the server.
-        vect.poids = std.dict2str(nw)
+        vect.poids = std.dict2str(nw) + "<delay>" + std.dict2str(wt)
         vect = stub.GetFeature(route_guide_pb2.Vector(poids=vect.poids))
 
         it += 1
+
+        time.sleep(1.7)
 
     print(vect)
 

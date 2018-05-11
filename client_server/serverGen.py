@@ -62,10 +62,10 @@ nbParameters = len(trainingSet[0])-1  #-1 because we don't count the label
 
 
 # Maximum number of epochs we allow.
-nbMaxCall = 50
+nbMaxCall = 100
 
 # Way to work
-way2work = "sync"
+way2work = "async"
 
 # Step of the gradient descent
 step = 0.05
@@ -133,24 +133,23 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
         # all the vectors we got from the clients or the message 'stop' the
         # signal to the client that we converged.
 
+        normDiff = 0
+        normGradW = 0
+        normPrecW = 0
         if (request.poids == 'pret'):
             vector = std.datadict2Sstr(trainingSet)
-            normDiff = 0
-            normGradW = 0
-            normPrecW = 0
         elif (request.poids == 'getw0'):
             vector = std.dict2str(w0)
-            normDiff = 0
-            normGradW = 0
-            normPrecW = 0
         else :
             if (way2work == "sync"):
                 gradParam = std.mergeSGD(self.vectors)
                 gradParam = std.sparse_mult(self.step, gradParam)
                 vector = std.sparse_vsous(self.oldParam, gradParam)
             else:
-                grad_vector = std.str2dict(request.poids)
-                vector = std.asynchronousUpdate(self.oldParam,grad_vector,oldparam,l,step)
+                info = request.poids.split("<delay>")
+                grad_vector = std.str2dict(info[0])
+                wt = std.str2dict(info[1])
+                vector = std.asynchronousUpdate(self.oldParam,grad_vector,wt,l,self.step)
             diff = std.sparse_vsous(self.oldParam,vector)
             normDiff = math.sqrt(std.sparse_dot(diff,diff))
             normGradW = math.sqrt(std.sparse_dot(vector,vector))
@@ -159,6 +158,9 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
                 self.paramVector = vector
                 vector = 'stop'
             else:
+                print("vector = " + str(vector))
+                print("step = " + str(self.step))
+                #self.step *= 0.9
                 vector = std.dict2str(vector)
 
         ######################################################################
@@ -167,27 +169,27 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
         # Section 3 : wait that all the threads pass the computation area, and
         # store the new computed vector.
 
+        realComputation = (request.poids != 'pret') and (request.poids != 'getw0') and (vector != 'stop')
+
         if (way2work == "sync"):
             self.iterator -= 1
 
             self.exit_condition = (self.iterator == 0)
             waiting.wait(lambda : self.exit_condition)
 
-            realComputation = (request.poids != 'pret') and (request.poids != 'getw0') and (vector != 'stop')
-
             if (realComputation):
                 self.oldParam = std.str2dict(vector)
 
             ######################################################################
 
-            ###################### PRINT OF THE CURRENT STATE ######################
-            if (threading.current_thread().name == self.printerThreadName):
-                std.printTrace(self.epoch, vector, self.paramVector, self.testingErrors, self.trainingErrors, trainaA,                               trainaB, trainoA,trainoB, hypPlace, normDiff, normGradW, normPrecW, normw0,                                          realComputation, self.oldParam,trainingSet, testingSet, nbTestingData, nbExamples,                                   nbMaxCall)
-                self.epoch += 1
-                self.step *= 0.9
-            ############################### END OF PRINT ###########################
+        ###################### PRINT OF THE CURRENT STATE ######################
+        if ((threading.current_thread().name == self.printerThreadName) & (way2work=="sync") or (way2work=="async")):
+            std.printTrace(self.epoch, vector, self.paramVector, self.testingErrors, self.trainingErrors, trainaA,                               trainaB, trainoA,trainoB, hypPlace, normDiff, normGradW, normPrecW, normw0,                                          realComputation, self.oldParam,trainingSet, testingSet, nbTestingData, nbExamples,                                   nbMaxCall)
+            self.epoch += 1
+            self.step *= 0.9
+        ############################### END OF PRINT ###########################
 
-            ######################################################################
+
 
             ######################################################################
             # Section 4 : empty the storage list of the vectors, and wait for all
