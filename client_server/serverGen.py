@@ -158,9 +158,6 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
                 self.paramVector = vector
                 vector = 'stop'
             else:
-                print("vector = " + str(vector))
-                print("step = " + str(self.step))
-                #self.step *= 0.9
                 vector = std.dict2str(vector)
 
         ######################################################################
