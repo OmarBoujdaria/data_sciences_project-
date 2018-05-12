@@ -304,8 +304,8 @@ def printTrace(epoch,vector,paramVector,testingErrors,trainingErrors,trainaA,tra
                 print("     self.epoch > nbMaxCall")
         if (realComputation or (epoch == 1)):
             # Compute the error made with that vector of parameters on the testing set
-            testingErrors.append(sgd.error(oldParam, 0.1, testingSet, nbTestingData, hypPlace))
-            trainingErrors.append(sgd.error(oldParam, 0.1, trainingSet, nbExamples, hypPlace))
+            testingErrors.append(sgd.error(oldParam, 0.1, testingSet, nbTestingData))
+            trainingErrors.append(sgd.error(oldParam, 0.1, trainingSet, nbExamples))
             print('# The merged vector is : ' + vector + '.')
         if (epoch == nbMaxCall):
             print('We performed the maximum number of iterations.')

@@ -16,7 +16,6 @@ import route_guide_pb2_grpc
 
 import threading
 
-import matplotlib.pyplot as plt
 
 import sgd
 import sparseToolsDict as std
@@ -29,10 +28,13 @@ nbClients = 2
 
 
 # Number of examples we want in our training set.
-nbExamples = 10000
+nbExamples = 20000
 
 # Total number of descriptors per example
 nbDescript = 2
+
+# Number of samples we want for each training subset client
+numSamples = 15000
 
 # Place of the constante 1 in each example : it
 # permits to include the hyperplan constant to the
@@ -45,7 +47,7 @@ trainingSet, trainaA,trainoA, trainaB, trainoB = sgd.generateData(nbExamples)
 trainingSet = std.dataPreprocessing(trainingSet,hypPlace)
 
 # Number of examples we want in our training set.
-nbTestingData = 1600
+nbTestingData = 500
 
 # Set of generated data for testing.
 testingSet, testaA, testoA, testaB, testoB = sgd.generateData(nbTestingData)
@@ -71,7 +73,7 @@ way2work = "sync"
 step = 0.05
 
 # The depreciation of the SVM norm cost
-l = 0.5
+l = 100
 
 class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
 
@@ -137,7 +139,7 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
         normGradW = 0
         normPrecW = 0
         if (request.poids == 'pret'):
-            vector = std.datadict2Sstr(trainingSet)
+            vector = std.datadict2Sstr(trainingSet) + "<depre>" + str(l) + "<samples>" + str(numSamples)
         elif (request.poids == 'getw0'):
             vector = std.dict2str(w0)
         else :

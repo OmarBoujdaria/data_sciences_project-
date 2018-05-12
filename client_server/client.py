@@ -13,12 +13,6 @@ import sgd
 import sparseToolsDict as std
 
 
-# We define here the number of samples we want for each training subset.
-numSamples = 6000
-
-hypPlace = 4
-
-
 
 ##############################################################################
 # Contact the server to get the data set, the departure vector to compute the
@@ -43,6 +37,16 @@ def guide_get_feature(stub):
 
     # We make a first call to the server to get the data : after that call, vect is the data set. Then we store it.
     vect = stub.GetFeature(route_guide_pb2.Vector(poids="pret"))
+    dataInfo = vect.poids.split("<depre>")
+    vect.poids = dataInfo[0]
+
+    computeInfo = dataInfo[1].split("<samples>")
+
+    # The depreciation of the SVM norm cost
+    l = float(computeInfo[0])
+
+    # Number of samples in each subtraining set
+    numSamples = float(computeInfo[1])
 
     # We convert the set of data in the good format.
     dataSampleSet = std.str2datadict(vect.poids)
@@ -50,11 +54,6 @@ def guide_get_feature(stub):
     # This second call serves to get the departure vector.
     vect = stub.GetFeature(route_guide_pb2.Vector(poids="getw0"))
 
-    # The depreciation of the SVM norm cost
-    l = 0.5
-
-    # The constant step to perform the gradient descent on the learning training.
-    step = 0.05
 
     while (vect.poids != 'stop'):
 
@@ -64,7 +63,7 @@ def guide_get_feature(stub):
         wt = std.str2dict(vect.poids)
 
         # Gradient descent on the sample.
-        nw = sgd.descent(dataSampleSet, std.str2dict(vect.poids), numSamples, step, l, hypPlace)
+        nw = sgd.descent(dataSampleSet, std.str2dict(vect.poids), numSamples, l)
 
         # The result is sent to the server.
         vect.poids = std.dict2str(nw) + "<delay>" + std.dict2str(wt)
