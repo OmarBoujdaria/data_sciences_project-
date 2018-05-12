@@ -28,7 +28,7 @@ nbClients = 2
 
 
 # Number of examples we want in our training set.
-nbExamples = 20000
+nbExamples = 50000
 
 # Total number of descriptors per example
 nbDescript = 2
@@ -73,7 +73,7 @@ way2work = "sync"
 step = 0.05
 
 # The depreciation of the SVM norm cost
-l = 100
+l = 0.5
 
 class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
 
@@ -176,8 +176,8 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
             self.exit_condition = (self.iterator == 0)
             waiting.wait(lambda : self.exit_condition)
 
-            if (realComputation):
-                self.oldParam = std.str2dict(vector)
+        if (realComputation):
+            self.oldParam = std.str2dict(vector)
 
             ######################################################################
 
