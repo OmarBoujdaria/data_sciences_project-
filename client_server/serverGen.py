@@ -58,7 +58,7 @@ testingSet = std.dataPreprocessing(testingSet,hypPlace)
 
 # Initial vector to process the stochastic gradient descent :
 # random generated.
-w0 = {1:0.21,2:0.75,hypPlace:0.011}                  #one element, to start the computation
+w0 = {1:22.67,2:6.75,hypPlace:7.11}                  #one element, to start the computation
 normw0 = math.sqrt(std.sparse_dot(w0,w0))
 nbParameters = len(trainingSet[0])-1  #-1 because we don't count the label
 
@@ -73,7 +73,7 @@ way2work = "sync"
 step = 0.05
 
 # The depreciation of the SVM norm cost
-l = 0.5
+l = 0.1
 
 class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
 
@@ -106,8 +106,9 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
         # Error on the testing set, computed at each cycle of the server
         self.testingErrors = []
         # Step of the descent
-        self.step = 3
-
+        self.step = 10
+        # Keep all the merged vectors
+        self.merged = [w0]
 
 
 
@@ -179,14 +180,16 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
         if (realComputation):
             self.oldParam = std.str2dict(vector)
 
-            ######################################################################
+        ######################################################################
 
         ###################### PRINT OF THE CURRENT STATE ######################
+        ##################### AND DO CRITICAL MODIFICATIONS ####################
         if ((threading.current_thread().name == self.printerThreadName) & (way2work=="sync") or (way2work=="async")):
-            std.printTrace(self.epoch, vector, self.paramVector, self.testingErrors, self.trainingErrors, trainaA,                               trainaB, trainoA,trainoB, hypPlace, normDiff, normGradW, normPrecW, normw0,                                          realComputation, self.oldParam,trainingSet, testingSet, nbTestingData, nbExamples,                                   nbMaxCall)
+            std.printTraceGenData(self.epoch, vector, self.paramVector, self.testingErrors, self.trainingErrors, trainaA,                               trainaB, trainoA,trainoB, hypPlace, normDiff, normGradW, normPrecW, normw0, w0,                                         realComputation, self.oldParam,trainingSet, testingSet, nbTestingData, nbExamples,                                   nbMaxCall,self.merged)
+            self.merged.append(self.oldParam)
             self.epoch += 1
             self.step *= 0.9
-        ############################### END OF PRINT ###########################
+            ############################### END OF PRINT ###########################
 
 
 

@@ -269,7 +269,7 @@ def dataPreprocessing(data,hypPlace):
 
 ############## PRINT THE TRACE IN THE SERVER #################
 
-def printTrace(epoch,vector,paramVector,testingErrors,trainingErrors,trainaA,trainaB,trainoA,trainoB,hypPlace,normDiff,normGradW,normPrecW,normw0,realComputation,oldParam,trainingSet,testingSet,nbTestingData,nbExamples,nbMaxCall):
+def printTraceGenData(epoch,vector,paramVector,testingErrors,trainingErrors,trainaA,trainaB,trainoA,trainoB,hypPlace,normDiff,normGradW,normPrecW,normw0,w0,realComputation,oldParam,trainingSet,testingSet,nbTestingData,nbExamples,nbMaxCall,merged):
     print('')
     print('############################################################')
     if (epoch == 0):
@@ -294,6 +294,12 @@ def printTrace(epoch,vector,paramVector,testingErrors,trainingErrors,trainaA,tra
             i1 = (10 * w1 - b) / w2
             i2 = (-10 * w1 - b) / w2
             plt.plot([-10,10], [i1, i2], 'crimson')
+            #print("all merged vectors are : " + str(merged))
+            for d in merged:
+                w01 = d.get(1,0)
+                w02 = d.get(2,0)
+                w0b = d.get(hypPlace,0)
+                plt.plot([-10,10],[(10*w01-w0b)/w02,(-10*w01-w0b)/w02],'black')
             plt.show()
             print("We went out of the loop because : ")
             if (normDiff <= 10 ** (-8) * normPrecW):
