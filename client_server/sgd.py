@@ -178,7 +178,7 @@ def der_error(w,l,sample,sampleSize):
         example = std.take_out_label(sample[i])
         if (label*(std.sparse_dot(w,example)) < 1):
             sum = std.sparse_vsum(sum,std.sparse_mult(label,example))
-    print("der_err summ part = " + str(sum))
+    #print("der_err summ part = " + str(sum))
     dcost = std.sparse_vsum(d,sum)
     return dcost
 

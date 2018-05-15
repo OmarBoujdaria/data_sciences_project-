@@ -64,7 +64,7 @@ nbParameters = len(trainingSet[0])-1  #-1 because we don't count the label
 
 
 # Maximum number of epochs we allow.
-nbMaxCall = 15
+nbMaxCall = 5
 
 # Way to work
 way2work = "sync"

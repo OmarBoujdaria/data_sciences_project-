@@ -278,29 +278,39 @@ def printTraceGenData(epoch,vector,paramVector,testingErrors,trainingErrors,trai
         print('# We performed the epoch : ' + str(epoch) + '.')
         if (vector == "stop"):
             print("# The vector that achieve the convergence is : " + str(paramVector))
-            # Plot the error on the training set
-            plt.figure(1)
-            plt.plot([i for i in range(len(testingErrors))], testingErrors, 'b')
-            plt.plot([i for i in range(len(trainingErrors))], trainingErrors, 'r')
-            plt.show()
+            # Plot the error on the training and testing set
+
+            figure = plt.figure(figsize=(10,10))
+            axes = figure.add_subplot(211)
+            axes.plot([i for i in range(len(testingErrors))], testingErrors, 'b', label="Error on testing set.")
+            axes.plot([i for i in range(len(trainingErrors))], trainingErrors, 'r', label="Error on training set.")
+            axes.set_xlabel("Iteration.")
+            axes.set_ylabel("Error.")
+            axes.set_title("Learning curves.")
+            axes.legend()
+
             # Plot the training set and the hyperplan
-            plt.figure(2)
-            plt.scatter(trainaA, trainoA, s=10, c='r', marker='*')
-            plt.scatter(trainaB, trainoB, s=10, c='b', marker='o')
-            plt.plot([-10, 10], [10, -10], 'orange')
+
+            axes = figure.add_subplot(212)
+            axes.scatter(trainaA, trainoA, s=10, c='r', marker='*')
+            axes.scatter(trainaB, trainoB, s=10, c='b', marker='o')
+            axes.plot([-10, 10], [10, -10], 'orange', label="Theorical hyperplan")
             w1 = paramVector.get(1, 0)
             w2 = paramVector.get(2, 0)
             b = paramVector.get(hypPlace, 0)
             i1 = (10 * w1 - b) / w2
             i2 = (-10 * w1 - b) / w2
-            plt.plot([-10,10], [i1, i2], 'crimson')
-            #print("all merged vectors are : " + str(merged))
+            axes.plot([-10,10], [i1, i2], 'crimson',label="Hyperplan coming from learning.")
+            axes.set_title("Points in the training data set with separators hyperplans.")
+            axes.legend(loc='upper right')
+
+            # If "evolutione", print all the hyperplan that have been found during the learning.
             if (mode == "evolution"):
                 for d in merged:
                     w01 = d.get(1,0)
                     w02 = d.get(2,0)
                     w0b = d.get(hypPlace,0)
-                    plt.plot([-10,10],[(10*w01-w0b)/w02,(-10*w01-w0b)/w02],'black')
+                    axes.plot([-10,10],[(10*w01-w0b)/w02,(-10*w01-w0b)/w02],'black')
             plt.show()
             print("We went out of the loop because : ")
             if (normDiff <= 10 ** (-2) * normPrecW):
@@ -314,8 +324,8 @@ def printTraceGenData(epoch,vector,paramVector,testingErrors,trainingErrors,trai
             testingErrors.append(sgd.error(oldParam, 0.1, testingSet, nbTestingData))
             trainingErrors.append(sgd.error(oldParam, 0.1, trainingSet, nbExamples))
             print('# The merged vector is : ' + vector + '.')
-        if (epoch == nbMaxCall):
-            print('We performed the maximum number of iterations.')
-            print('The descent has been stopped.')
+        #if (epoch == nbMaxCall ):
+            #print('We performed the maximum number of iterations.')
+            #print('The descent has been stopped.')
         print('############################################################')
         print('')
