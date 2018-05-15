@@ -73,8 +73,8 @@ way2work = "sync"
 l = 0.1
 
 # Constants to test the convergence
-c1 = 10**(-2)
-c2 = 10**(-2)
+c1 = 10**(-8)
+c2 = 10**(-8)
 
 class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
 
