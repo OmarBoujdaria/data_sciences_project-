@@ -269,7 +269,7 @@ def dataPreprocessing(data,hypPlace):
 
 ############## PRINT THE TRACE IN THE SERVER #################
 
-def printTraceGenData(epoch,vector,paramVector,testingErrors,trainingErrors,trainaA,trainaB,trainoA,trainoB,hypPlace,normDiff,normGradW,normPrecW,normw0,w0,realComputation,oldParam,trainingSet,testingSet,nbTestingData,nbExamples,nbMaxCall,merged):
+def printTraceGenData(epoch,vector,paramVector,testingErrors,trainingErrors,trainaA,trainaB,trainoA,trainoB,hypPlace,normDiff,normGradW,normPrecW,normw0,w0,realComputation,oldParam,trainingSet,testingSet,nbTestingData,nbExamples,nbMaxCall,merged,mode,c1,c2):
     print('')
     print('############################################################')
     if (epoch == 0):
@@ -295,17 +295,18 @@ def printTraceGenData(epoch,vector,paramVector,testingErrors,trainingErrors,trai
             i2 = (-10 * w1 - b) / w2
             plt.plot([-10,10], [i1, i2], 'crimson')
             #print("all merged vectors are : " + str(merged))
-            for d in merged:
-                w01 = d.get(1,0)
-                w02 = d.get(2,0)
-                w0b = d.get(hypPlace,0)
-                plt.plot([-10,10],[(10*w01-w0b)/w02,(-10*w01-w0b)/w02],'black')
+            if (mode == "evolution"):
+                for d in merged:
+                    w01 = d.get(1,0)
+                    w02 = d.get(2,0)
+                    w0b = d.get(hypPlace,0)
+                    plt.plot([-10,10],[(10*w01-w0b)/w02,(-10*w01-w0b)/w02],'black')
             plt.show()
             print("We went out of the loop because : ")
-            if (normDiff <= 10 ** (-8) * normPrecW):
-                print("     normDiff <= 10 ** (-8) * normPrecW")
-            elif (normGradW <= 10 ** (-8) * normw0):
-                print("     normGradW <= 10 ** (-8) * normw0")
+            if (normDiff <= 10 ** (-2) * normPrecW):
+                print("     normDiff <= " + str(c1) + " * normPrecW")
+            elif (normGradW <= 10 ** (-2) * normw0):
+                print("     normGradW <= " + str(c2) + " * normw0")
             else:
                 print("     self.epoch > nbMaxCall")
         if (realComputation or (epoch == 1)):

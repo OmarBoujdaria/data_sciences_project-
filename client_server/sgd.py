@@ -33,7 +33,7 @@ def generateData(nbData):
     u = {1: 1, 2: 1}
     # d is the double of the distance of each point in the square to the
     # separator hyperplan.
-    d = 2
+    d = .1
 
     # u is a hyperplan's orthogonal vector.
     u = {1: 1, 2: 1}
@@ -98,7 +98,7 @@ def generateData(nbData):
 
 
 
-generateData(500)
+#generateData(500)
 
 
 
@@ -176,7 +176,7 @@ def der_error(w,l,sample,sampleSize):
     for i in range(sampleSize):
         label = sample[i].get(-1,0)
         example = std.take_out_label(sample[i])
-        if (label*(std.sparse_dot(w,example)) <= 1):
+        if (label*(std.sparse_dot(w,example)) < 1):
             sum = std.sparse_vsum(sum,std.sparse_mult(label,example))
     dcost = std.sparse_vsum(d,sum)
     return dcost
@@ -209,7 +209,7 @@ def descent(data,w,numSamples,l):
     # Modification of the parameter vector w.
     #w = std.sparse_vsous(w,std.sparse_mult(step,d))
 
-    return w
+    return d
 
 
 

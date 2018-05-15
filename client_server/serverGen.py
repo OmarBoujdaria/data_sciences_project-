@@ -64,16 +64,17 @@ nbParameters = len(trainingSet[0])-1  #-1 because we don't count the label
 
 
 # Maximum number of epochs we allow.
-nbMaxCall = 100
+nbMaxCall = 15
 
 # Way to work
 way2work = "sync"
 
-# Step of the gradient descent
-step = 0.05
-
 # The depreciation of the SVM norm cost
 l = 0.1
+
+# Constants to test the convergence
+c1 = 10**(-2)
+c2 = 10**(-2)
 
 class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
 
@@ -153,11 +154,17 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
                 grad_vector = std.str2dict(info[0])
                 wt = std.str2dict(info[1])
                 vector = std.asynchronousUpdate(self.oldParam,grad_vector,wt,l,self.step)
+
+            ######## NORMALIZATION OF THE VECTOR OF PARAMETERS #########
+            normW = math.sqrt(std.sparse_dot(vector,vector))
+            vector = std.sparse_mult(1./normW,vector)
+
+            ############################################################
             diff = std.sparse_vsous(self.oldParam,vector)
             normDiff = math.sqrt(std.sparse_dot(diff,diff))
             normGradW = math.sqrt(std.sparse_dot(vector,vector))
             normPrecW = math.sqrt(std.sparse_dot(self.oldParam, self.oldParam))
-            if ((normDiff <= 10 ** (-8) * normPrecW) or (self.epoch > nbMaxCall) or (normGradW <= 10**(-8)*normw0)):
+            if ((normDiff <= c1*normPrecW) or (self.epoch > nbMaxCall) or (normGradW <= c2*normw0)):
                 self.paramVector = vector
                 vector = 'stop'
             else:
@@ -185,7 +192,7 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
         ###################### PRINT OF THE CURRENT STATE ######################
         ##################### AND DO CRITICAL MODIFICATIONS ####################
         if ((threading.current_thread().name == self.printerThreadName) & (way2work=="sync") or (way2work=="async")):
-            std.printTraceGenData(self.epoch, vector, self.paramVector, self.testingErrors, self.trainingErrors, trainaA,                               trainaB, trainoA,trainoB, hypPlace, normDiff, normGradW, normPrecW, normw0, w0,                                         realComputation, self.oldParam,trainingSet, testingSet, nbTestingData, nbExamples,                                   nbMaxCall,self.merged)
+            std.printTraceGenData(self.epoch, vector, self.paramVector, self.testingErrors, self.trainingErrors, trainaA,                               trainaB, trainoA,trainoB, hypPlace, normDiff, normGradW, normPrecW, normw0, w0,                                         realComputation, self.oldParam,trainingSet, testingSet, nbTestingData, nbExamples,                                   nbMaxCall,self.merged,"",c1,c2)
             self.merged.append(self.oldParam)
             self.epoch += 1
             self.step *= 0.9
