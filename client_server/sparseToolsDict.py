@@ -3,7 +3,7 @@
 ########################################################################
 
 import math
-#import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 import sgd
 
 
@@ -321,17 +321,17 @@ def printTraceRecData(epoch,vector,paramVector,testingErrors,trainingErrors,norm
     else:
         print('# We performed the epoch : ' + str(epoch) + '.')
         if (vector == "stop"):
-            print("# The vector that achieve the convergence is : " + str(paramVector))
+            #print("# The vector that achieve the convergence is : " + str(paramVector))
             # Plot the error on the training and testing set
 
-            figure = plt.figure(figsize=(10,10))
-            axes = figure.add_subplot(211)
-            axes.plot([i for i in range(len(testingErrors))], testingErrors, 'b', label="Error on testing set.")
-            axes.plot([i for i in range(len(trainingErrors))], trainingErrors, 'r', label="Error on training set.")
-            axes.set_xlabel("Iteration.")
-            axes.set_ylabel("Error.")
-            axes.set_title("Learning curves.")
-            axes.legend()
+            plt.figure(figsize=(10,10))
+            #plt.plot([i for i in range(len(testingErrors))], testingErrors, 'b', label="Error on testing set.")
+            plt.plot([i for i in range(len(trainingErrors))], trainingErrors, 'r', label="Error on training set.")
+            plt.xlabel("Iteration.")
+            plt.ylabel("Error.")
+            plt.title("Learning curves.")
+            plt.legend()
+            plt.show()
 
             print("We went out of the loop because : ")
             if (normDiff <= 10 ** (-2) * normPrecW):
@@ -342,8 +342,8 @@ def printTraceRecData(epoch,vector,paramVector,testingErrors,trainingErrors,norm
                 print("     self.epoch > nbMaxCall")
         if (realComputation or (epoch == 1)):
             # Compute the error made with that vector of parameters on the testing set
-            testingErrors.append(sgd.error(oldParam, 0.1, testingSet, nbTestingData))
+            #testingErrors.append(sgd.error(oldParam, 0.1, testingSet, nbTestingData))
             trainingErrors.append(sgd.error(oldParam, 0.1, trainingSet, nbExamples))
-            print('# The merged vector is : ' + vector + '.')
+            #print('# The merged vector is : ' + vector + '.')
         print('############################################################')
         print('')
