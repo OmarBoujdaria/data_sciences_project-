@@ -47,10 +47,10 @@ with open('/home/kiwi974/cours/epfl/system_for_data_science/project/data/data600
     data = treatData(pickle.load(f))
 
 # Number of examples we want in our training set.
-nbExamples = 200
+nbExamples = 2000
 
 # Number of examples we want in our testing set.
-nbTestingData = 200
+nbTestingData = 30
 
 print("Building of the training set...")
 
@@ -80,11 +80,11 @@ normw0 = math.sqrt(std.sparse_dot(w0, w0))
 nbParameters = len(trainingSet[0]) - 1  # -1 because we don't count the label
 
 # Maximum number of epochs we allow.
-nbMaxCall = 50
+nbMaxCall = 200
 
 print("Server is ready !")
 # Maximum number of epochs we allow.
-nbMaxCall = 50
+nbMaxCall = 200
 
 # Way to work
 way2work = "sync"
@@ -116,6 +116,8 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
         self.epoch = 0
         # The previous vecor of parameters : the last that had been sent.
         self.oldParam = w0
+        # Norm if the gradient of the departure vector
+        self.normGradW0 = 0
         # The name of one of the thread executing GetFeature : this one, and
         # only this one will something about the state of the computation in
         # the server.
@@ -160,6 +162,7 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
         normDiff = 0
         normGradW = 0
         normPrecW = 0
+
         if (request.poids == 'pret'):
             vector = std.datadict2Sstr(trainingSet) + "<depre>" + str(l) + "<samples>" + str(numSamples)
         elif (request.poids == 'getw0'):
@@ -167,11 +170,17 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
         else :
             if (way2work == "sync"):
                 gradParam = std.mergeSGD(self.vectors)
+                if (self.epoch == 2):
+                    self.normGradW0 = math.sqrt(std.sparse_dot(gradParam, gradParam))
+                normGradW = math.sqrt(std.sparse_dot(gradParam, gradParam))
                 gradParam = std.sparse_mult(self.step, gradParam)
                 vector = std.sparse_vsous(self.oldParam, gradParam)
             else:
                 info = request.poids.split("<delay>")
                 grad_vector = std.str2dict(info[0])
+                if (self.epoch == 2):
+                    self.normGradW0 = math.sqrt(std.sparse_dot(grad_vector, grad_vector))
+                normGradW = math.sqrt(std.sparse_dot(grad_vector, grad_vector))
                 wt = std.str2dict(info[1])
                 vector = std.asynchronousUpdate(self.oldParam,grad_vector,wt,l,self.step)
 
@@ -182,9 +191,8 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
             ############################################################
             diff = std.sparse_vsous(self.oldParam,vector)
             normDiff = math.sqrt(std.sparse_dot(diff,diff))
-            normGradW = math.sqrt(std.sparse_dot(vector,vector))
             normPrecW = math.sqrt(std.sparse_dot(self.oldParam, self.oldParam))
-            if ((normDiff <= c1*normPrecW) or (self.epoch > nbMaxCall) or (normGradW <= c2*normw0)):
+            if ((normDiff <= c1*normPrecW) or (self.epoch > nbMaxCall) or (normGradW <= c2*self.normGradW0)):
                 self.paramVector = vector
                 vector = 'stop'
             else:
