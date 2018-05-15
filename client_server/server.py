@@ -15,7 +15,6 @@ import route_guide_pb2_grpc
 
 import threading
 
-import sgd
 import sparseToolsDict as std
 
 import pickle
@@ -71,8 +70,8 @@ print("Testing data pre-processing")
 
 testingSet = std.dataPreprocessing(testingSet, hypPlace)
 
-# Pre-processing of the data (normalisation and centration).
-# data = tools.dataPreprocessing(data)
+# Number of samples we want for each training subset client
+numSamples = 50
 
 # Initial vector to process the stochastic gradient descent :
 # random generated.
@@ -83,14 +82,25 @@ nbParameters = len(trainingSet[0]) - 1  # -1 because we don't count the label
 # Maximum number of epochs we allow.
 nbMaxCall = 50
 
-# The constant step to perform the gradient descent on the learning training.
-step = 0.05
-
 print("Server is ready !")
+# Maximum number of epochs we allow.
+nbMaxCall = 50
+
+# Way to work
+way2work = "sync"
+
+# The depreciation of the SVM norm cost
+l = 0.1
+
+# Constants to test the convergence
+c1 = 10**(-8)
+c2 = 10**(-8)
 
 class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
-    """ We define attributes of the class to perform the computations."""
 
+
+
+    """ We define attributes of the class to perform the computations."""
     def __init__(self):
         # An iterator that will count the number of clients that contact the
         # server at each epoch.
@@ -116,6 +126,12 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
         self.trainingErrors = []
         # Error on the testing set, computed at each cycle of the server
         self.testingErrors = []
+        # Step of the descent
+        self.step = 10
+        # Keep all the merged vectors
+        self.merged = [w0]
+
+
 
     def GetFeature(self, request, context):
 
@@ -123,15 +139,16 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
         # Section 1 : wait for all the clients -> get their vectors and
         # appoint one of them as the printer.
 
-        self.iterator += 1
-        if (request.poids == "pret" or request.poids == "getw0"):
-            self.vectors.append(request.poids)
-        else:
-            self.vectors.append(std.str2dict(request.poids))
-        self.enter_condition = (self.iterator == nbClients)
-        waiting.wait(lambda: self.enter_condition)
+        if (way2work == "sync"):
+            self.iterator += 1
+            if (request.poids == "pret" or request.poids == "getw0"):
+                self.vectors.append(request.poids)
+            else:
+                self.vectors.append(std.str2dict(request.poids.split("<delay>")[0]))
+            self.enter_condition = (self.iterator == nbClients)
+            waiting.wait(lambda : self.enter_condition)
 
-        self.printerThreadName = threading.current_thread().name
+            self.printerThreadName = threading.current_thread().name
 
         ######################################################################
 
@@ -140,17 +157,34 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
         # all the vectors we got from the clients or the message 'stop' the
         # signal to the client that we converged.
 
+        normDiff = 0
+        normGradW = 0
+        normPrecW = 0
         if (request.poids == 'pret'):
-            vector = std.datadict2Sstr(trainingSet)
+            vector = std.datadict2Sstr(trainingSet) + "<depre>" + str(l) + "<samples>" + str(numSamples)
         elif (request.poids == 'getw0'):
             vector = std.dict2str(w0)
-        else:
-            grad_vector = std.merge(self.vectors,nbClients)
-            vector = std.sparse_vsous(self.oldParam,grad_vector)
-            diff = std.sparse_vsous(self.oldParam, vector)
-            normDiff = math.sqrt(std.sparse_dot(diff, diff))
-            normGradW = math.sqrt(std.sparse_dot(vector, vector))
-            if ((normDiff <= 10 ** (-3)) or (self.epoch > nbMaxCall) or (normGradW <= 10 ** (-3) * normw0)):
+        else :
+            if (way2work == "sync"):
+                gradParam = std.mergeSGD(self.vectors)
+                gradParam = std.sparse_mult(self.step, gradParam)
+                vector = std.sparse_vsous(self.oldParam, gradParam)
+            else:
+                info = request.poids.split("<delay>")
+                grad_vector = std.str2dict(info[0])
+                wt = std.str2dict(info[1])
+                vector = std.asynchronousUpdate(self.oldParam,grad_vector,wt,l,self.step)
+
+            ######## NORMALIZATION OF THE VECTOR OF PARAMETERS #########
+            normW = math.sqrt(std.sparse_dot(vector,vector))
+            vector = std.sparse_mult(1./normW,vector)
+
+            ############################################################
+            diff = std.sparse_vsous(self.oldParam,vector)
+            normDiff = math.sqrt(std.sparse_dot(diff,diff))
+            normGradW = math.sqrt(std.sparse_dot(vector,vector))
+            normPrecW = math.sqrt(std.sparse_dot(self.oldParam, self.oldParam))
+            if ((normDiff <= c1*normPrecW) or (self.epoch > nbMaxCall) or (normGradW <= c2*normw0)):
                 self.paramVector = vector
                 vector = 'stop'
             else:
@@ -162,12 +196,13 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
         # Section 3 : wait that all the threads pass the computation area, and
         # store the new computed vector.
 
-        self.iterator -= 1
-
-        self.exit_condition = (self.iterator == 0)
-        waiting.wait(lambda: self.exit_condition)
-
         realComputation = (request.poids != 'pret') and (request.poids != 'getw0') and (vector != 'stop')
+
+        if (way2work == "sync"):
+            self.iterator -= 1
+
+            self.exit_condition = (self.iterator == 0)
+            waiting.wait(lambda : self.exit_condition)
 
         if (realComputation):
             self.oldParam = std.str2dict(vector)
@@ -175,41 +210,30 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
         ######################################################################
 
         ###################### PRINT OF THE CURRENT STATE ######################
-        if (threading.current_thread().name == self.printerThreadName):
-            print('')
-            print('############################################################')
-            if (self.epoch == 0):
-                print('# We sent the data to the clients.')
-            else:
-                print('# We performed the epoch : ' + str(self.epoch) + '.')
-                if (vector == "stop"):
-                    print("# The vector that achieve the convergence is : " + str(self.paramVector))
-            if (realComputation or (self.epoch == 1)):
-                # Compute the error made with that vector of parameters on the testing set
-                self.testingErrors.append(sgd.error(self.oldParam, 0.1, testingSet, nbTestingData, hypPlace))
-                self.trainingErrors.append(sgd.error(self.oldParam, 0.1, trainingSet, nbExamples, hypPlace))
-                print('# The merged vector is : ' + vector + '.')
-            if (self.epoch == nbMaxCall):
-                print('We performed the maximum number of iterations.')
-                print('The descent has been stopped.')
-            print('############################################################')
-            print('')
+        ##################### AND DO CRITICAL MODIFICATIONS ####################
+        if ((threading.current_thread().name == self.printerThreadName) & (way2work=="sync") or (way2work=="async")):
+            std.printTraceRecData(self.epoch, vector, self.paramVector, self.testingErrors, self.trainingErrors, normDiff, normGradW, normPrecW, normw0,realComputation, self.oldParam,trainingSet, testingSet, nbTestingData, nbExamples,c1,c2)
+            self.merged.append(self.oldParam)
             self.epoch += 1
-        ############################### END OF PRINT ###########################
+            self.step *= 0.9
+            ############################### END OF PRINT ###########################
 
-        ######################################################################
 
-        ######################################################################
-        # Section 4 : empty the storage list of the vectors, and wait for all
-        # the threads.
 
-        self.vectors = []
-        waiting.wait(lambda: (self.vectors == []))
+            ######################################################################
+            # Section 4 : empty the storage list of the vectors, and wait for all
+            # the threads.
 
-        ######################################################################
+            self.vectors = []
+            waiting.wait(lambda : (self.vectors == []))
 
-        # time.sleep(1)
+            ######################################################################
+
+        #time.sleep(1)
         return route_guide_pb2.Vector(poids=vector)
+
+
+
 
 
 def serve():
