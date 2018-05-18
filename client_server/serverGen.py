@@ -34,7 +34,7 @@ nbExamples = 50000
 nbDescript = 2
 
 # Number of samples we want for each training subset client
-numSamples = 15000
+numSamples = 10000
 
 # Place of the constante 1 in each example : it
 # permits to include the hyperplan constant to the
@@ -47,7 +47,7 @@ trainingSet, trainaA,trainoA, trainaB, trainoB = sgd.generateData(nbExamples)
 trainingSet = std.dataPreprocessing(trainingSet,hypPlace)
 
 # Number of examples we want in our training set.
-nbTestingData = 500
+nbTestingData = 20000
 
 # Set of generated data for testing.
 testingSet, testaA, testoA, testaB, testoB = sgd.generateData(nbTestingData)
@@ -56,24 +56,30 @@ testingSet = std.dataPreprocessing(testingSet,hypPlace)
 # Pre-processing of the data (normalisation and centration).
 #data = tools.dataPreprocessing(data)
 
+# The depreciation of the SVM norm cost
+l = 0.01
+
+# The step of the descent
+step = 1
+
 # Initial vector to process the stochastic gradient descent :
 # random generated.
-w0 = {1:22.67,2:6.75,hypPlace:7.11}                  #one element, to start the computation
-normw0 = math.sqrt(std.sparse_dot(w0,w0))
+w0 = {1:0.67,2:0.75,hypPlace:0.11}                  #one element, to start the computation
+gW0 = sgd.der_error(w0,l,trainingSet,nbExamples)
+normGW0 = math.sqrt(std.sparse_dot(gW0,gW0))
 nbParameters = len(trainingSet[0])-1  #-1 because we don't count the label
 
 
 # Maximum number of epochs we allow.
-nbMaxCall = 5
+nbMaxCall = 20
 
 # Way to work
 way2work = "sync"
 
-# The depreciation of the SVM norm cost
-l = 0.1
+print("server ready...")
 
 # Constants to test the convergence
-c1 = 10**(-8)
+c1 = 10**(-10)
 c2 = 10**(-8)
 
 class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
@@ -96,6 +102,8 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
         self.epoch = 0
         # The previous vecor of parameters : the last that had been sent.
         self.oldParam = w0
+        # Norm of the gradient of the cost function in w0
+        self.normgW0 = normGW0
         # The name of one of the thread executing GetFeature : this one, and
         # only this one will something about the state of the computation in
         # the server.
@@ -107,7 +115,7 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
         # Error on the testing set, computed at each cycle of the server
         self.testingErrors = []
         # Step of the descent
-        self.step = 10
+        self.step = step
         # Keep all the merged vectors
         self.merged = [w0]
 
@@ -164,7 +172,7 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
             normDiff = math.sqrt(std.sparse_dot(diff,diff))
             normGradW = math.sqrt(std.sparse_dot(vector,vector))
             normPrecW = math.sqrt(std.sparse_dot(self.oldParam, self.oldParam))
-            if ((normDiff <= c1*normPrecW) or (self.epoch > nbMaxCall) or (normGradW <= c2*normw0)):
+            if ((normDiff <= c1*normPrecW) or (self.epoch > nbMaxCall) or (normGradW <= c2*self.normgW0)):
                 self.paramVector = vector
                 vector = 'stop'
             else:
@@ -192,10 +200,16 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
         ###################### PRINT OF THE CURRENT STATE ######################
         ##################### AND DO CRITICAL MODIFICATIONS ####################
         if ((threading.current_thread().name == self.printerThreadName) & (way2work=="sync") or (way2work=="async")):
-            std.printTraceGenData(self.epoch, vector, self.paramVector, self.testingErrors, self.trainingErrors, trainaA,                               trainaB, trainoA,trainoB, hypPlace, normDiff, normGradW, normPrecW, normw0, w0,                                         realComputation, self.oldParam,trainingSet, testingSet, nbTestingData, nbExamples,                                   nbMaxCall,self.merged,"",c1,c2)
+            std.printTraceGenData(self.epoch, vector, self.paramVector, self.testingErrors, self.trainingErrors, trainaA,                               trainaB, trainoA,trainoB, hypPlace, normDiff, normGradW, normPrecW, self.normgW0, w0,                                         realComputation, self.oldParam,trainingSet, testingSet, nbTestingData, nbExamples,                                   nbMaxCall,self.merged,"",c1,c2,l)
             self.merged.append(self.oldParam)
             self.epoch += 1
             self.step *= 0.9
+
+            dataTest = trainingSet[9]
+            label = dataTest.get(-1, 0)
+            example = std.take_out_label(dataTest)
+            print("label = " + str(label))
+            print("SVM says = " + str(std.sparse_dot(self.oldParam, example)))
             ############################### END OF PRINT ###########################
 
 

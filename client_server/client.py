@@ -11,6 +11,7 @@ import route_guide_pb2_grpc
 
 import sgd
 import sparseToolsDict as std
+import math
 
 
 
@@ -64,6 +65,10 @@ def guide_get_feature(stub):
 
         # Gradient descent on the sample.
         nw = sgd.descent(dataSampleSet, std.str2dict(vect.poids), numSamples, l)
+
+        # Normalization of the vector of parameters
+        normnW = math.sqrt(std.sparse_dot(nw, nw))
+        nw = std.sparse_mult(1/normnW, nw)
 
         # The result is sent to the server.
         vect.poids = std.dict2str(nw) + "<delay>" + std.dict2str(wt)

@@ -18,6 +18,7 @@ import threading
 import sparseToolsDict as std
 
 import pickle
+import sgd
 
 _ONE_DAY_IN_SECONDS = 24 * 60 * 60
 
@@ -71,20 +72,25 @@ print("Testing data pre-processing")
 testingSet = std.dataPreprocessing(testingSet, hypPlace)
 
 # Number of samples we want for each training subset client
-numSamples = 50
+numSamples = 200
+
+# The depreciation of the SVM norm cost
+l = 0.01
+
+# The step of the descent
+step = 1
 
 # Initial vector to process the stochastic gradient descent :
 # random generated.
 w0 = {1: 0.21, 2: 0.75, hypPlace: 0.011}  # one element, to start the computation
-normw0 = math.sqrt(std.sparse_dot(w0, w0))
+gW0 = sgd.der_error(w0,l,trainingSet,nbExamples)
+normGW0 = math.sqrt(std.sparse_dot(gW0,gW0))
 nbParameters = len(trainingSet[0]) - 1  # -1 because we don't count the label
 
 # Maximum number of epochs we allow.
-nbMaxCall = 200
+nbMaxCall = 400
 
 print("Server is ready !")
-# Maximum number of epochs we allow.
-nbMaxCall = 200
 
 # Way to work
 way2work = "sync"
@@ -116,8 +122,6 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
         self.epoch = 0
         # The previous vecor of parameters : the last that had been sent.
         self.oldParam = w0
-        # Norm if the gradient of the departure vector
-        self.normGradW0 = 0
         # The name of one of the thread executing GetFeature : this one, and
         # only this one will something about the state of the computation in
         # the server.
@@ -129,7 +133,7 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
         # Error on the testing set, computed at each cycle of the server
         self.testingErrors = []
         # Step of the descent
-        self.step = 10
+        self.step = step
         # Keep all the merged vectors
         self.merged = [w0]
 
@@ -192,7 +196,7 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
             diff = std.sparse_vsous(self.oldParam,vector)
             normDiff = math.sqrt(std.sparse_dot(diff,diff))
             normPrecW = math.sqrt(std.sparse_dot(self.oldParam, self.oldParam))
-            if ((normDiff <= c1*normPrecW) or (self.epoch > nbMaxCall) or (normGradW <= c2*self.normGradW0)):
+            if ((normDiff <= c1*normPrecW) or (self.epoch > nbMaxCall) or (normGradW <= c2*normGW0)):
                 self.paramVector = vector
                 vector = 'stop'
             else:
@@ -220,7 +224,7 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
         ###################### PRINT OF THE CURRENT STATE ######################
         ##################### AND DO CRITICAL MODIFICATIONS ####################
         if ((threading.current_thread().name == self.printerThreadName) & (way2work=="sync") or (way2work=="async")):
-            std.printTraceRecData(self.epoch, vector, self.paramVector, self.testingErrors, self.trainingErrors, normDiff, normGradW, normPrecW, normw0,realComputation, self.oldParam,trainingSet, testingSet, nbTestingData, nbExamples,c1,c2)
+            std.printTraceRecData(self.epoch, vector, self.paramVector, self.testingErrors, self.trainingErrors, normDiff, normGradW, normPrecW, normGW0,realComputation, self.oldParam,trainingSet, testingSet, nbTestingData, nbExamples,c1,c2,l)
             self.merged.append(self.oldParam)
             self.epoch += 1
             self.step *= 0.9
