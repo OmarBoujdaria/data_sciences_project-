@@ -62,14 +62,14 @@ with open('/home/kiwi974/cours/epfl/system_for_data_science/project/data/data600
 ############ Definition of the parameters of the algorithm ############
 
 # Number of examples we want in our training set.
-nbExamples = 200
+nbExamples = 2000
 
 # Number of chunks created to send data and size of each one of them
 chunkSize = 1000
 nbChunks = nbExamples//chunkSize + 1
 
 # Number of samples we want for each training subset client
-numSamples = 30
+numSamples = 100
 
 # The depreciation of the SVM norm cost
 l = 0.01
@@ -81,7 +81,7 @@ nbMaxCall = 20
 step = 1
 
 # Number of examples we want in our testing set.
-nbTestingData = 999
+nbTestingData = 30
 
 # Constants to test the convergence
 c1 = 10**(-8)

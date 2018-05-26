@@ -326,7 +326,7 @@ def printTraceRecData(epoch,vector,testingErrors,trainingErrors,normDiff,normGra
             # Plot the error on the training and testing set
 
             plt.figure(figsize=(10,10))
-            plt.plot([i for i in range(len(testingErrors))], testingErrors, 'b', label="Error on testing set.")
+            #plt.plot([i for i in range(len(testingErrors))], testingErrors, 'b', label="Error on testing set.")
             plt.plot([i for i in range(len(trainingErrors))], trainingErrors, 'r', label="Error on training set.")
             plt.xlabel("Iteration.")
             plt.ylabel("Error.")
@@ -348,7 +348,7 @@ def printTraceRecData(epoch,vector,testingErrors,trainingErrors,normDiff,normGra
                 print("     self.epoch > nbMaxCall")
         if ((realComputation or (epoch == 1)) and ((epoch % 5 == 0) or (epoch == 1))):
             # Compute the error made with that vector of parameters  on the testing set
-            testingErrors.append(sgd.error(oldParam, l, testingSet, nbTestingData))
+            #testingErrors.append(sgd.error(oldParam, l, testingSet, nbTestingData))
             trainingErrors.append(sgd.error(oldParam, l, trainingSet, nbExamples))
             #print('# The merged vector is : ' + vector + '.')
         print('############################################################')
