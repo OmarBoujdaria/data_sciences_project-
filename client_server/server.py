@@ -62,7 +62,11 @@ with open('/home/kiwi974/cours/epfl/system_for_data_science/project/data/data600
 ############ Definition of the parameters of the algorithm ############
 
 # Number of examples we want in our training set.
-nbExamples = 200
+nbExamples = 5000
+
+# Number of chunks created to send data and size of each one of them
+chunkSize = 1000
+nbChunks = nbExamples//chunkSize + 1
 
 # Number of samples we want for each training subset client
 numSamples = 20
@@ -94,7 +98,7 @@ trainingSet = data[:nbExamples]
 
 print("Training data pre-processing...")
 
-trainingSet = std.dataPreprocessing(trainingSet,hypPlace)
+#trainingSet = std.dataPreprocessing(trainingSet,hypPlace)
 
 print("Building of the testing set...")
 
@@ -103,7 +107,7 @@ testingSet = data[nbExamples:nbExamples+nbTestingData]
 
 print("Testing data pre-processing")
 
-testingSet = std.dataPreprocessing(testingSet, hypPlace)
+#testingSet = std.dataPreprocessing(testingSet, hypPlace)
 
 
 
@@ -113,6 +117,8 @@ testingSet = std.dataPreprocessing(testingSet, hypPlace)
 # Initial vector to process the stochastic gradient descent :
 # random generated.
 w0 = {1: 0.21, 2: 0.75, hypPlace: 0.011}  # one element, to start the computation
+
+print("Computation of the initial gradient")
 gW0 = sgd.der_error(w0,l,trainingSet,nbExamples)
 normGW0 = math.sqrt(std.sparse_dot(gW0,gW0))
 nbParameters = len(trainingSet[0]) - 1  # -1 because we don't count the label
@@ -184,7 +190,7 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
 
         if (way2work == "sync"):
             self.iterator += 1
-            if (request.poids == "pret" or request.poids == "getw0"):
+            if (request.poids == "pret" or request.poids == "getw0" or request.poids[:5] == "chunk"):
                 self.vectors.append(request.poids)
             else:
                 self.vectors.append(std.str2dict(request.poids.split("<delay>")[0]))
@@ -209,7 +215,11 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
         normPrecW = 0
 
         if (request.poids == 'pret'):
-            vector = std.datadict2Sstr(trainingSet) + "<depre>" + str(l) + "<samples>" + str(numSamples)
+            vector = str(nbChunks) + "<depre>" + str(l) + "<samples>" + str(numSamples)
+        elif (request.poids[:5] == 'chunk'):
+            chunk = request.poids.split("<nb>")
+            chunk = int(chunk[1])
+            vector = std.datadict2Sstr(trainingSet[(chunk-1)*chunkSize:chunk*chunkSize])
         elif (request.poids == 'getw0'):
             vector = std.dict2str(w0)
         else :
@@ -249,7 +259,7 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
         # Section 3 : wait that all the threads pass the computation area, and
         # store the new computed vector.
 
-        realComputation = (request.poids != 'pret') and (request.poids != 'getw0') and (vector != 'stop')
+        realComputation = (request.poids != 'pret') and (request.poids != 'getw0') and (vector != 'stop') and (request.poids[:5] != 'chunk')
 
         if (way2work == "sync"):
             self.iterator -= 1
@@ -273,8 +283,9 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
             std.printTraceRecData(self.epoch, vector, self.paramVector, self.testingErrors, self.trainingErrors, normDiff, normGradW, normPrecW, normGW0,realComputation, self.oldParam,trainingSet, testingSet, nbTestingData, nbExamples,c1,c2,l, 47236, filePath)
 
             self.merged.append(self.oldParam)
-            self.epoch += 1
-            self.step *= 0.9
+            if (realComputation):
+                self.epoch += 1
+                self.step *= 0.9
             ############################### END OF PRINT ###########################
 
 

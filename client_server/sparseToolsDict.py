@@ -169,13 +169,14 @@ def datadict2Sstr(data):
 
 def str2datadict(strData):
     frame = []
-    datastr = strData.split("<<->>")
-    for dstr in datastr:
-        lab_ex = dstr.split("<|>")
-        label = float(lab_ex[0])
-        dict = str2dict(lab_ex[1])
-        dict[-1] = label
-        frame.append(dict)
+    if (strData != ""):
+        datastr = strData.split("<<->>")
+        for dstr in datastr:
+            lab_ex = dstr.split("<|>")
+            label = float(lab_ex[0])
+            dict = str2dict(lab_ex[1])
+            dict[-1] = label
+            frame.append(dict)
     return frame
 
 

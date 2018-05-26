@@ -39,7 +39,7 @@ def guide_get_feature(stub):
     # We make a first call to the server to get the data : after that call, vect is the data set. Then we store it.
     vect = stub.GetFeature(route_guide_pb2.Vector(poids="pret"))
     dataInfo = vect.poids.split("<depre>")
-    vect.poids = dataInfo[0]
+    nbChunks = int(dataInfo[0])
 
     computeInfo = dataInfo[1].split("<samples>")
 
@@ -49,8 +49,13 @@ def guide_get_feature(stub):
     # Number of samples in each subtraining set
     numSamples = float(computeInfo[1])
 
-    # We convert the set of data in the good format.
-    dataSampleSet = std.str2datadict(vect.poids)
+    # Get the dataset from the server, by receiving all the chunks
+    k = 1
+    dataSampleSet = []
+    while (k <= nbChunks):
+        vect = stub.GetFeature(route_guide_pb2.Vector(poids="chunk<nb>" + str(k)))
+        dataSampleSet += std.str2datadict(vect.poids)
+        k +=1
 
     # This second call serves to get the departure vector.
     vect = stub.GetFeature(route_guide_pb2.Vector(poids="getw0"))
