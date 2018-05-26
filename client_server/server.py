@@ -69,7 +69,7 @@ chunkSize = 1000
 nbChunks = nbExamples//chunkSize + 1
 
 # Number of samples we want for each training subset client
-numSamples = 20
+numSamples = 300
 
 # The depreciation of the SVM norm cost
 l = 0.01
@@ -81,7 +81,7 @@ nbMaxCall = 20
 step = 1
 
 # Number of examples we want in our testing set.
-nbTestingData = 30
+nbTestingData = 999
 
 # Constants to test the convergence
 c1 = 10**(-8)
@@ -282,7 +282,7 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
             if (vector == 'stop'):
                 print("The server ran during : " + str(duration))
 
-            std.printTraceRecData(self.epoch, vector, self.paramVector, self.testingErrors, self.trainingErrors, normDiff, normGradW, normPrecW, normGW0,realComputation, self.oldParam,trainingSet, testingSet, nbTestingData, nbExamples,c1,c2,l, duration, filePath)
+            std.printTraceRecData(self.epoch, vector, self.testingErrors, self.trainingErrors, normDiff, normGradW, normPrecW, normGW0,realComputation, self.oldParam,trainingSet, testingSet, nbTestingData, nbExamples,c1,c2,l, duration, filePath)
 
             self.merged.append(self.oldParam)
             if (realComputation):
