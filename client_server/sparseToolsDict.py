@@ -313,7 +313,7 @@ def printTraceGenData(epoch,vector,paramVector,testingErrors,trainingErrors,trai
 
 
 
-def printTraceRecData(epoch,vector,paramVector,testingErrors,trainingErrors,normDiff,normGradW,normPrecW,normw0,realComputation,oldParam,trainingSet,testingSet,nbTestingData,nbExamples,c1,c2,l):
+def printTraceRecData(epoch,vector,paramVector,testingErrors,trainingErrors,normDiff,normGradW,normPrecW,normw0,realComputation,oldParam,trainingSet,testingSet,nbTestingData,nbExamples,c1,c2,l,nbCompo, filePath):
     print('')
     print('############################################################')
     if (epoch == 0):
@@ -332,6 +332,11 @@ def printTraceRecData(epoch,vector,paramVector,testingErrors,trainingErrors,norm
             plt.title("Learning curves.")
             plt.legend()
             plt.show()
+
+            # Record the results in a file
+            fichier = open(filePath, 'a')
+            fichier.write(str(nbCompo) + "<nbCompo>" + str(trainingErrors) + "\n")
+            fichier.close()
 
             print("We went out of the loop because : ")
             if (normDiff <= 10 ** (-2) * normPrecW):

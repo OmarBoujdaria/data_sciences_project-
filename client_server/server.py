@@ -1,6 +1,6 @@
 """The Python implementation of the gRPC stochastic gradient descent server.
-Note : it's necessary to download and install the package waiting of Python to execute that code. it permits to create
-barriers for the threads at different point of the algorithm. while loops was not enough : we can explain the different
+Note : it's necessary to download and install the package waiting of Python to execute that code. It permits to create
+barriers for the threads at different point of the algorithm. While loops was not enough : we can explain the different
 problems we had with that synchronization part during the meeting, and justify the use of the librairy. """
 
 from concurrent import futures
@@ -17,24 +17,32 @@ import threading
 
 import sparseToolsDict as std
 
+import time
 import pickle
 import sgd
 
 _ONE_DAY_IN_SECONDS = 24 * 60 * 60
 
-""" Define the number of clients you want to use."""
+
+
+
+
+
+############ Define the number of clients you want to use. ############
 nbClients = 2
 
 
 
-# Place of the constante 1 in each example : it
-# permits to include the hyperplan constant to the
-# vector of parameters.
+
+############ Place of the constante 1 in each example : it permits to   ############
+############ include the hyperplan constant to the vector of parameters ############
 
 hypPlace = 10**6
 
 
-# Importation of the data
+
+
+############ Loading of the data ############
 
 def treatData(data):
     for i in range(len(data)):
@@ -47,11 +55,37 @@ print("Starting of the server...")
 with open('/home/kiwi974/cours/epfl/system_for_data_science/project/data/data6000new', 'rb') as f:
     data = treatData(pickle.load(f))
 
+
+
+
+
+############ Definition of the parameters of the algorithm ############
+
 # Number of examples we want in our training set.
-nbExamples = 2000
+nbExamples = 200
+
+# Number of samples we want for each training subset client
+numSamples = 20
+
+# The depreciation of the SVM norm cost
+l = 0.01
+
+# Maximum number of server iterations we allow.
+nbMaxCall = 20
+
+# The step of the descent
+step = 1
 
 # Number of examples we want in our testing set.
 nbTestingData = 30
+
+# Constants to test the convergence
+c1 = 10**(-8)
+c2 = 10**(-8)
+
+
+
+############ Preprocessing of the data ############
 
 print("Building of the training set...")
 
@@ -71,14 +105,10 @@ print("Testing data pre-processing")
 
 testingSet = std.dataPreprocessing(testingSet, hypPlace)
 
-# Number of samples we want for each training subset client
-numSamples = 200
 
-# The depreciation of the SVM norm cost
-l = 0.01
 
-# The step of the descent
-step = 1
+
+############ Computation of the initial departure vector and its gradient ############
 
 # Initial vector to process the stochastic gradient descent :
 # random generated.
@@ -87,20 +117,25 @@ gW0 = sgd.der_error(w0,l,trainingSet,nbExamples)
 normGW0 = math.sqrt(std.sparse_dot(gW0,gW0))
 nbParameters = len(trainingSet[0]) - 1  # -1 because we don't count the label
 
-# Maximum number of epochs we allow.
-nbMaxCall = 400
+
+
+
+
+############ Way to work ############
+way2work = "sync"
+
+# File path where record training erros
+if (way2work == "sync"):
+    filePath = '/home/kiwi974/cours/epfl/system_for_data_science/project/client_server/synchronous.txt'
+else:
+    filePath = '/home/kiwi974/cours/epfl/system_for_data_science/project/client_server/asynchronous.txt'
+
+
 
 print("Server is ready !")
 
-# Way to work
-way2work = "sync"
 
-# The depreciation of the SVM norm cost
-l = 0.1
 
-# Constants to test the convergence
-c1 = 10**(-8)
-c2 = 10**(-8)
 
 class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
 
@@ -136,6 +171,8 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
         self.step = step
         # Keep all the merged vectors
         self.merged = [w0]
+        # Keep the starting time
+        self.startTime= 0
 
 
 
@@ -155,6 +192,10 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
             waiting.wait(lambda : self.enter_condition)
 
             self.printerThreadName = threading.current_thread().name
+
+            if ((threading.current_thread().name == self.printerThreadName) & (self.epoch == 2)):
+                ############ Starting of the timer to time the run ############
+                self.startTime = time.time()
 
         ######################################################################
 
@@ -224,7 +265,13 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
         ###################### PRINT OF THE CURRENT STATE ######################
         ##################### AND DO CRITICAL MODIFICATIONS ####################
         if ((threading.current_thread().name == self.printerThreadName) & (way2work=="sync") or (way2work=="async")):
-            std.printTraceRecData(self.epoch, vector, self.paramVector, self.testingErrors, self.trainingErrors, normDiff, normGradW, normPrecW, normGW0,realComputation, self.oldParam,trainingSet, testingSet, nbTestingData, nbExamples,c1,c2,l)
+
+            if (vector == 'stop'):
+                endTime = time.time()
+                print("The server ran during : " + str(endTime-self.startTime))
+
+            std.printTraceRecData(self.epoch, vector, self.paramVector, self.testingErrors, self.trainingErrors, normDiff, normGradW, normPrecW, normGW0,realComputation, self.oldParam,trainingSet, testingSet, nbTestingData, nbExamples,c1,c2,l, 47236, filePath)
+
             self.merged.append(self.oldParam)
             self.epoch += 1
             self.step *= 0.9
