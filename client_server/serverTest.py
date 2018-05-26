@@ -128,7 +128,7 @@ nbParameters = len(trainingSet[0]) - 1  # -1 because we don't count the label
 
 
 ############ Way to work ############
-way2work = "sync"
+way2work = "async"
 
 # File path where record training erros
 if (way2work == "sync"):
@@ -188,28 +188,22 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
         # Section 1 : wait for all the clients -> get their vectors and
         # appoint one of them as the printer.
 
-        print(self.epoch)
-
-        self.printerThreadName = threading.current_thread().name
-
-        if (request.poids == "pret" or request.poids == "getw0" or request.poids[:5] == "chunk"):
+        if (way2work == "sync" or ((way2work=="async") and (self.epoch == 0)) ):
             self.iterator += 1
-            self.vectors.append(request.poids)
+            if (request.poids == "pret" or request.poids == "getw0" or request.poids[:5] == "chunk"):
+                self.vectors.append(request.poids)
+            else:
+                self.vectors.append(std.str2dict(request.poids.split("<delay>")[0]))
             self.enter_condition = (self.iterator == nbClients)
-            waiting.wait(lambda: self.enter_condition)
+            waiting.wait(lambda : self.enter_condition)
 
-        if ((way2work == "sync") and (request.poids != "pret") and (request.poids != "getw0") and (request.poids[:5] != "chunk")):
-            self.iterator += 1
-            self.vectors.append(std.str2dict(request.poids.split("<delay>")[0]))
-            self.enter_condition = (self.iterator == nbClients)
-            waiting.wait(lambda: self.enter_condition)
+            self.printerThreadName = threading.current_thread().name
 
-        if ((threading.current_thread().name == self.printerThreadName) and (self.epoch == 1)):
-            ############ Starting of the timer to time the run ############
-            self.startTime = time.time()
+            if ((threading.current_thread().name == self.printerThreadName) & (self.epoch == 2)):
+                ############ Starting of the timer to time the run ############
+                self.startTime = time.time()
 
         ######################################################################
-
 
         ######################################################################
         # Section 2 : compute the new vector -> send the data, a merge of
@@ -255,9 +249,6 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
             normPrecW = math.sqrt(std.sparse_dot(self.oldParam, self.oldParam))
             if ((normDiff <= c1*normPrecW) or (self.epoch > nbMaxCall) or (normGradW <= c2*normGW0)):
                 self.paramVector = vector
-                print("1 : " + str((normDiff <= c1*normPrecW)))
-                print("2 : " + str((self.epoch > nbMaxCall)))
-                print("3 : " + str((normGradW <= c2*normGW0)))
                 vector = 'stop'
             else:
                 vector = std.dict2str(vector)
@@ -270,6 +261,11 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
 
         realComputation = (request.poids != 'pret') and (request.poids != 'getw0') and (vector != 'stop') and (request.poids[:5] != 'chunk')
 
+        if (way2work == "sync" or ((way2work=="async") and (self.epoch == 0))):
+            self.iterator -= 1
+
+            self.exit_condition = (self.iterator == 0)
+            waiting.wait(lambda : self.exit_condition)
 
         if (realComputation):
             self.oldParam = std.str2dict(vector)
@@ -278,8 +274,8 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
 
         ###################### PRINT OF THE CURRENT STATE ######################
         ##################### AND DO CRITICAL MODIFICATIONS ####################
-        if (((threading.current_thread().name == self.printerThreadName) and (way2work == "sync")) or (way2work == "async")):
-            print("oooooooo")
+        if ((threading.current_thread().name == self.printerThreadName) & (way2work=="sync") or (way2work=="async")):
+
             endTime = time.time()
             duration = endTime - self.startTime
 
@@ -301,15 +297,9 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
             # the threads.
 
             self.vectors = []
+            waiting.wait(lambda : (self.vectors == []))
 
             ######################################################################
-
-        ######################################################################
-        # Section 5 : synchronize all clients at the end of a server iteration
-        if (way2work == "sync"):
-            self.iterator -= 1
-            self.exit_condition = (self.iterator == 0)
-            waiting.wait(lambda : self.exit_condition)
 
         #time.sleep(1)
         return route_guide_pb2.Vector(poids=vector)
@@ -333,3 +323,4 @@ def serve():
 
 if __name__ == '__main__':
     serve()
+
