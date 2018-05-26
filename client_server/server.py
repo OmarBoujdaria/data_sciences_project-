@@ -276,11 +276,13 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
         ##################### AND DO CRITICAL MODIFICATIONS ####################
         if ((threading.current_thread().name == self.printerThreadName) & (way2work=="sync") or (way2work=="async")):
 
-            if (vector == 'stop'):
-                endTime = time.time()
-                print("The server ran during : " + str(endTime-self.startTime))
+            endTime = time.time()
+            duration = endTime - self.startTime
 
-            std.printTraceRecData(self.epoch, vector, self.paramVector, self.testingErrors, self.trainingErrors, normDiff, normGradW, normPrecW, normGW0,realComputation, self.oldParam,trainingSet, testingSet, nbTestingData, nbExamples,c1,c2,l, 47236, filePath)
+            if (vector == 'stop'):
+                print("The server ran during : " + str(duration))
+
+            std.printTraceRecData(self.epoch, vector, self.paramVector, self.testingErrors, self.trainingErrors, normDiff, normGradW, normPrecW, normGW0,realComputation, self.oldParam,trainingSet, testingSet, nbTestingData, nbExamples,c1,c2,l, duration, filePath)
 
             self.merged.append(self.oldParam)
             if (realComputation):

@@ -17,25 +17,22 @@ else:
 
 file = open(filePath, 'r')
 
-components = []
-errorsTab = []
+times = 0
+errors = []
 
 # Extract data of the file
 
-for line in file:
-    data = line.split("<nbCompo>")
-    components.append(int(data[0]))
-    err = data[1].split((", "))
-    n = len(err)
-    errors = []
-    for k in range(n):
-        if (k == 0):
-            errors.append(float(err[k][1:]))
-        elif (k == (n-1)):
-            errors.append(float(err[k][:-2]))
-        else:
-            errors.append((float(err[k])))
-    errorsTab.append(errors)
+data = file.read().split("<nbCompo>")
+duration = float(data[0])
+err = data[1].split((", "))
+n = len(err)
+for k in range(n):
+    if (k == 0):
+        errors.append(float(err[k][1:]))
+    elif (k == (n-1)):
+        errors.append(float(err[k][:-2]))
+    else:
+        errors.append((float(err[k])))
 file.close()
 
 print(errors)
@@ -44,18 +41,14 @@ print(errors)
 
 colors = ['firebrick', 'darkorange', 'rebeccapurple', 'gold', 'darkgreen', 'dodgerblue', 'magenta','brown']
 
-n = len(components)
 
 ###################################################################
 
 
 figure = plt.figure(figsize=(10, 10))
-splitComp = 0
-plt.plot([k + splitComp for k in range(len(errorsTab[n - 1]) - splitComp)], errorsTab[n - 1][splitComp:],colors[n - 1], label="Error for classic SGD (all components, " + str(len(errorsTab[n-1])) + " iterations).")
-for i in range(n-1):
-    plt.plot([k+splitComp for k in range(len(errorsTab[i])-splitComp)], errorsTab[i][splitComp:], colors[i], label="Error for "+str(components[i])+" components chosen in topk (" + str(len(errorsTab[i])) + " iterations).")
-    plt.xlabel("Server iterations.")
-    plt.ylabel("Error")
-    plt.title("Dense data : learning rate multiplied by 0.9 at each server iteration.")
-    plt.legend()
+plt.plot([k for k in range(len(errors))], errors, colors[0], label="Learning curve. Computation time = " + str(duration))
+plt.xlabel("Server iterations.")
+plt.ylabel("Error")
+plt.title("Dense data : learning rate multiplied by 0.9 at each server iteration.")
+plt.legend()
 plt.show()

@@ -318,7 +318,7 @@ def printTraceRecData(epoch,vector,paramVector,testingErrors,trainingErrors,norm
     print('')
     print('############################################################')
     if (epoch == 0):
-        print('# We sent the data to the clients.')
+        print('# We are sending the data to the clients.')
     else:
         print('# We performed the epoch : ' + str(epoch) + '.')
         if (vector == "stop"):
