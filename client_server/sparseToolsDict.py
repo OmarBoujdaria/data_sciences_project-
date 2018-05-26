@@ -314,42 +314,34 @@ def printTraceGenData(epoch,vector,paramVector,testingErrors,trainingErrors,trai
 
 
 
-def printTraceRecData(epoch,vector,testingErrors,trainingErrors,normDiff,normGradW,normPrecW,normGW0,realComputation,oldParam,trainingSet,testingSet,nbTestingData,nbExamples,c1,c2,l,nbCompo, filePath):
-    print('')
-    print('############################################################')
-    if (epoch == 0):
-        print('# We are sending the data to the clients.')
+def printTraceRecData(epoch,vector,testingErrors,trainingErrors):
+
+     print('# We performed the epoch : ' + str(epoch) + '.')
+     if (vector == "stop"):
+     # Plot the error on the training and testing set
+        plt.figure(figsize=(10,10))
+        #plt.plot([i for i in range(len(testingErrors))], testingErrors, 'b', label="Error on testing set.")
+        plt.plot([i for i in range(len(trainingErrors))], trainingErrors, 'r', label="Error on training set.")
+        plt.xlabel("Iteration.")
+        plt.ylabel("Error.")
+        plt.title("Learning curves.")
+        plt.legend()
+        plt.show()
+
+
+
+def printReasonConv(normDiff,normPrecW,normGradW,normGW0,c1,c2):
+    print("We went out of the loop because : ")
+    if (normDiff <= c1 * normPrecW):
+        print("     normDiff <= " + str(c1) + " * normPrecW")
+    elif (normGradW <= c2 * normGW0):
+        print("     normGradW <= " + str(c2) + " * normw0")
     else:
-        print('# We performed the epoch : ' + str(epoch) + '.')
-        if (vector == "stop"):
-            #print("# The vector that achieve the convergence is : " + str(paramVector))
-            # Plot the error on the training and testing set
+        print("     self.epoch > nbMaxCall")
 
-            plt.figure(figsize=(10,10))
-            #plt.plot([i for i in range(len(testingErrors))], testingErrors, 'b', label="Error on testing set.")
-            plt.plot([i for i in range(len(trainingErrors))], trainingErrors, 'r', label="Error on training set.")
-            plt.xlabel("Iteration.")
-            plt.ylabel("Error.")
-            plt.title("Learning curves.")
-            plt.legend()
-            plt.show()
 
-            # Record the results in a file
-            fichier = open(filePath, 'a')
-            fichier.write(str(nbCompo) + "<nbCompo>" + str(trainingErrors) + "\n")
-            fichier.close()
-
-            print("We went out of the loop because : ")
-            if (normDiff <= 10 ** (-2) * normPrecW):
-                print("     normDiff <= " + str(c1) + " * normPrecW")
-            elif (normGradW <= 10 ** (-2) * normGW0):
-                print("     normGradW <= " + str(c2) + " * normw0")
-            else:
-                print("     self.epoch > nbMaxCall")
-        if ((realComputation or (epoch == 1)) and ((epoch % 5 == 0) or (epoch == 1))):
-            # Compute the error made with that vector of parameters  on the testing set
-            #testingErrors.append(sgd.error(oldParam, l, testingSet, nbTestingData))
-            trainingErrors.append(sgd.error(oldParam, l, trainingSet, nbExamples))
-            #print('# The merged vector is : ' + vector + '.')
-        print('############################################################')
-        print('')
+def recordData(filePath,desc,trainingErrors):
+    # Record the results in a file
+    fichier = open(filePath, 'a')
+    fichier.write(str(desc) + "<nbCompo>" + str(trainingErrors) + "\n")
+    fichier.close()

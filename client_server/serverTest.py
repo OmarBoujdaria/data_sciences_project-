@@ -276,18 +276,41 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
         ##################### AND DO CRITICAL MODIFICATIONS ####################
         if ((threading.current_thread().name == self.printerThreadName) & (way2work=="sync") or (way2work=="async")):
 
-            endTime = time.time()
-            duration = endTime - self.startTime
+
+            print(' ')
+            print('#################################################')
+            if (self.epoch == 0):
+                print('# We are sending the data to the clients.')
+            else:
+                print('We performed epoch ' + str(self.epoch))
+
+
+            #std.printTraceRecData(self.epoch, vector, self.testingErrors, self.trainingErrors)
+
+
+            # Compute the error made with that vector of parameters  on the testing set
+            if ((realComputation or (self.epoch == 1)) and ((self.epoch % 5 == 0) or (self.epoch == 1))):
+                self.trainingErrors.append(sgd.error(self.oldParam, l, trainingSet, nbExamples))
+                # self.testingErrors.append(sgd.error(self.oldParam, l, testingSet, nbTestingData))
+
 
             if (vector == 'stop'):
+                endTime = time.time()
+                duration = endTime - self.startTime
                 print("The server ran during : " + str(duration))
+                # Record the computed error
+                std.recordData(filePath, duration, self.trainingErrors)
+                # Print the reason why we converged
+                std.printReasonConv(normDiff, normPrecW, normGradW, normGW0, c1, c2)
 
-            std.printTraceRecData(self.epoch, vector, self.testingErrors, self.trainingErrors, normDiff, normGradW, normPrecW, normGW0,realComputation, self.oldParam,trainingSet, testingSet, nbTestingData, nbExamples,c1,c2,l, duration, filePath)
 
             self.merged.append(self.oldParam)
             if (realComputation):
                 self.epoch += 1
                 self.step *= 0.9
+
+            print('#################################################')
+            print(' ')
             ############################### END OF PRINT ###########################
 
 
