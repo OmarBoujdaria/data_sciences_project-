@@ -62,26 +62,26 @@ with open('/home/kiwi974/cours/epfl/system_for_data_science/project/data/data120
 ############ Definition of the parameters of the algorithm ############
 
 # Number of examples we want in our training set.
-nbExamples = 800
+nbExamples = 80
 
 # Number of chunks created to send data and size of each one of them
 chunkSize = 1000
 nbChunks = nbExamples//chunkSize + 1
 
 # Number of samples we want for each training subset client
-numSamples = 100
+numSamples = 10
 
 # The depreciation of the SVM norm cost
 l = 0.01
 
 # Maximum number of server iterations we allow.
-nbMaxCall = 20
+nbMaxCall = 10
 
 # The step of the descent
 step = 1
 
 # Number of examples we want in our testing set.
-nbTestingData = 400
+nbTestingData = 40
 
 # Constants to test the convergence
 c1 = 10**(-8)
@@ -127,7 +127,7 @@ nbParameters = len(trainingSet[0]) - 1  # -1 because we don't count the label
 
 
 ############ Way to work ############
-way2work = "sync"
+way2work = "async"
 
 # File path where record training erros
 if (way2work == "sync"):
@@ -176,8 +176,6 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
         self.testingErrors = []
         # Step of the descent
         self.step = step
-        # Keep all the merged vectors
-        self.merged = [w0]
         # Keep the starting time
         self.startTime= 0
 
@@ -200,9 +198,10 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
 
             self.printerThreadName = threading.current_thread().name
 
-            if ((threading.current_thread().name == self.printerThreadName) & (self.epoch == 2)):
-                ############ Starting of the timer to time the run ############
-                self.startTime = time.time()
+
+        if (((way2work=="sync")&(threading.current_thread().name == self.printerThreadName) & (self.epoch == 2)) or ((way2work=="async") and (self.epoch == 1))):
+            ############ Starting of the timer to time the run ############
+            self.startTime = time.time()
 
         ######################################################################
 
@@ -279,7 +278,6 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
         ##################### AND DO CRITICAL MODIFICATIONS ####################
         if ((threading.current_thread().name == self.printerThreadName) & (way2work=="sync") or (way2work=="async")):
 
-
             print(' ')
             print('#################################################')
             if (self.epoch == 0):
@@ -292,9 +290,17 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
 
 
             # Compute the error made with that vector of parameters  on the testing set
-            if ((realComputation or (self.epoch == 1)) and ((self.epoch % 5 == 0) or (self.epoch == 1))):
-                self.trainingErrors.append(sgd.error(self.oldParam, l, trainingSet, nbExamples))
-                self.testingErrors.append(sgd.error(self.oldParam, l, testingSet, nbTestingData))
+            if (realComputation):
+                if ((self.epoch % 5 == 0) or (self.epoch == 1)):
+                    self.epoch += 1
+                    self.step *= 0.9
+                    print("     Computing error on the training set...")
+                    self.trainingErrors.append(sgd.error(self.oldParam, l, trainingSet, nbExamples))
+                    print("     Computing error on the validation set...")
+                    self.testingErrors.append(sgd.error(self.oldParam, l, testingSet, nbTestingData))
+                else:
+                    self.epoch += 1
+                    self.step *= 0.9
 
 
             if (vector == 'stop'):
@@ -307,11 +313,6 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
                 # Print the reason why we converged
                 std.printReasonConv(normDiff, normPrecW, normGradW, normGW0, c1, c2)
 
-
-            self.merged.append(self.oldParam)
-            if (realComputation):
-                self.epoch += 1
-                self.step *= 0.9
 
             print('#################################################')
             print(' ')

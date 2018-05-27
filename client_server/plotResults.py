@@ -55,7 +55,6 @@ for k in range(n):
         errorsValidation.append((float(err[k])))
 file.close()
 
-print(errorsTraining)
 
 # Plot data
 
