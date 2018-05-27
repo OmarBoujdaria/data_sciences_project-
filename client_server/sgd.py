@@ -364,7 +364,7 @@ def sample(set,numSamples):
 ########################################################################
 
 def error(w,l,sample,sampleSize):
-    norm = l*std.sparse_dot(w,w)
+    norm = l*math.sqrt(std.sparse_dot(w,w))
     sum = 0
     for i in range(sampleSize):
         label = sample[i].get(-1,0)

@@ -52,7 +52,7 @@ def treatData(data):
 
 print("Starting of the server...")
 
-with open('/home/kiwi974/cours/epfl/system_for_data_science/project/data/data6000new', 'rb') as f:
+with open('/home/kiwi974/cours/epfl/system_for_data_science/project/data/data12000', 'rb') as f:
     data = treatData(pickle.load(f))
 
 
@@ -62,7 +62,7 @@ with open('/home/kiwi974/cours/epfl/system_for_data_science/project/data/data600
 ############ Definition of the parameters of the algorithm ############
 
 # Number of examples we want in our training set.
-nbExamples = 2000
+nbExamples = 800
 
 # Number of chunks created to send data and size of each one of them
 chunkSize = 1000
@@ -81,7 +81,7 @@ nbMaxCall = 20
 step = 1
 
 # Number of examples we want in our testing set.
-nbTestingData = 30
+nbTestingData = 400
 
 # Constants to test the convergence
 c1 = 10**(-8)
@@ -91,14 +91,14 @@ c2 = 10**(-8)
 
 ############ Preprocessing of the data ############
 
+
 print("Building of the training set...")
 
 # Define the training set.
 trainingSet = data[:nbExamples]
 
 print("Training data pre-processing...")
-
-#trainingSet = std.dataPreprocessing(trainingSet,hypPlace)
+trainingSet = std.dataPreprocessing(trainingSet, hypPlace)
 
 print("Building of the testing set...")
 
@@ -106,8 +106,7 @@ print("Building of the testing set...")
 testingSet = data[nbExamples:nbExamples+nbTestingData]
 
 print("Testing data pre-processing")
-
-#testingSet = std.dataPreprocessing(testingSet, hypPlace)
+testingSet = std.dataPreprocessing(testingSet, hypPlace)
 
 
 
@@ -128,13 +127,15 @@ nbParameters = len(trainingSet[0]) - 1  # -1 because we don't count the label
 
 
 ############ Way to work ############
-way2work = "async"
+way2work = "sync"
 
 # File path where record training erros
 if (way2work == "sync"):
-    filePath = '/home/kiwi974/cours/epfl/system_for_data_science/project/client_server/synchronous.txt'
+    filePathTraining = '/home/kiwi974/cours/epfl/system_for_data_science/project/client_server/synchronousT.txt'
+    filePathValidation = '/home/kiwi974/cours/epfl/system_for_data_science/project/client_server/synchronousV.txt'
 else:
-    filePath = '/home/kiwi974/cours/epfl/system_for_data_science/project/client_server/asynchronous.txt'
+    filePathTraining = '/home/kiwi974/cours/epfl/system_for_data_science/project/client_server/asynchronousT.txt'
+    filePathValidation = '/home/kiwi974/cours/epfl/system_for_data_science/project/client_server/asynchronousV.txt'
 
 
 
@@ -204,6 +205,8 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
                 self.startTime = time.time()
 
         ######################################################################
+
+
 
         ######################################################################
         # Section 2 : compute the new vector -> send the data, a merge of
@@ -291,7 +294,7 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
             # Compute the error made with that vector of parameters  on the testing set
             if ((realComputation or (self.epoch == 1)) and ((self.epoch % 5 == 0) or (self.epoch == 1))):
                 self.trainingErrors.append(sgd.error(self.oldParam, l, trainingSet, nbExamples))
-                # self.testingErrors.append(sgd.error(self.oldParam, l, testingSet, nbTestingData))
+                self.testingErrors.append(sgd.error(self.oldParam, l, testingSet, nbTestingData))
 
 
             if (vector == 'stop'):
@@ -299,7 +302,8 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
                 duration = endTime - self.startTime
                 print("The server ran during : " + str(duration))
                 # Record the computed error
-                std.recordData(filePath, duration, self.trainingErrors)
+                std.recordData(filePathTraining, duration, self.trainingErrors)
+                std.recordData(filePathValidation,duration,self.testingErrors)
                 # Print the reason why we converged
                 std.printReasonConv(normDiff, normPrecW, normGradW, normGW0, c1, c2)
 
