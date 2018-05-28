@@ -17,42 +17,42 @@ else:
     filePathTraining = '/home/kiwi974/cours/epfl/system_for_data_science/project/client_server/asynchronousT.txt'
     filePathValidation = '/home/kiwi974/cours/epfl/system_for_data_science/project/client_server/asynchronousV.txt'
 
-file = open(filePathTraining, 'r')
 
 times = 0
+absSet = []
 errorsTraining = []
 errorsValidation = []
 
 # Extract training errors of the file
 
+file = open(filePathTraining, 'r')
 data = file.read().split("<nbCompo>")
-durationT = float(data[0])
-err = data[1].split((", "))
+duration = float(data[0])
+data[1] = data[1][2:]
+data[1] = data[1][:-3]
+err = data[1].split(("), ("))
+
 n = len(err)
 for k in range(n):
-    if (k == 0):
-        errorsTraining.append(float(err[k][1:]))
-    elif (k == (n-1)):
-        errorsTraining.append(float(err[k][:-2]))
-    else:
-        errorsTraining.append((float(err[k])))
+    f = err[k].split(", ")
+    errorsTraining.append(float(f[0]))
+    absSet.append(int(f[1]))
 file.close()
 
 # Extract validation errors of the file
 
 file = open(filePathValidation, 'r')
-
 data = file.read().split("<nbCompo>")
-durationV = float(data[0])
-err = data[1].split((", "))
+durationT = float(data[0])
+data[1] = data[1][2:]
+data[1] = data[1][:-3]
+err = data[1].split(("), ("))
+
 n = len(err)
+
 for k in range(n):
-    if (k == 0):
-        errorsValidation.append(float(err[k][1:]))
-    elif (k == (n-1)):
-        errorsValidation.append(float(err[k][:-2]))
-    else:
-        errorsValidation.append((float(err[k])))
+    f = err[k].split(", ")
+    errorsValidation.append(float(f[0]))
 file.close()
 
 
@@ -65,8 +65,8 @@ colors = ['firebrick', 'darkorange', 'rebeccapurple', 'gold', 'darkgreen', 'dodg
 
 
 figure = plt.figure(figsize=(10, 10))
-plt.plot([k for k in range(len(errorsTraining))], errorsTraining, colors[0], label="Learning curve. Computation time = " + str(durationT))
-plt.plot([k for k in range(len(errorsValidation))], errorsValidation, colors[5], label="Validation curve. Computation time = " + str(durationT))
+plt.plot(absSet, errorsTraining, colors[0], label="Learning curve. Computation time = " + str(duration))
+plt.plot(absSet, errorsValidation, colors[5], label="Validation curve. Computation time = " + str(duration))
 plt.xlabel("Server iterations.")
 plt.ylabel("Error")
 plt.title("Dense data : learning rate multiplied by 0.9 at each server iteration.")

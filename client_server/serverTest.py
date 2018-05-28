@@ -62,26 +62,26 @@ with open('/home/kiwi974/cours/epfl/system_for_data_science/project/data/data120
 ############ Definition of the parameters of the algorithm ############
 
 # Number of examples we want in our training set.
-nbExamples = 80
+nbExamples = 8000
 
 # Number of chunks created to send data and size of each one of them
 chunkSize = 1000
 nbChunks = nbExamples//chunkSize + 1
 
 # Number of samples we want for each training subset client
-numSamples = 10
+numSamples = 1000
 
 # The depreciation of the SVM norm cost
 l = 0.01
 
 # Maximum number of server iterations we allow.
-nbMaxCall = 10
+nbMaxCall = 1000
 
 # The step of the descent
 step = 1
 
 # Number of examples we want in our testing set.
-nbTestingData = 40
+nbTestingData = 4000
 
 # Constants to test the convergence
 c1 = 10**(-8)
@@ -127,7 +127,7 @@ nbParameters = len(trainingSet[0]) - 1  # -1 because we don't count the label
 
 
 ############ Way to work ############
-way2work = "async"
+way2work = "sync"
 
 # File path where record training erros
 if (way2work == "sync"):
@@ -200,6 +200,8 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
 
 
         if (((way2work=="sync")&(threading.current_thread().name == self.printerThreadName) & (self.epoch == 2)) or ((way2work=="async") and (self.epoch == 1))):
+            print("time start*********************************************")
+            print("start time = " + str(self.startTime))
             ############ Starting of the timer to time the run ############
             self.startTime = time.time()
 
@@ -269,9 +271,6 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
             self.exit_condition = (self.iterator == 0)
             waiting.wait(lambda : self.exit_condition)
 
-        if (realComputation):
-            self.oldParam = std.str2dict(vector)
-
         ######################################################################
 
         ###################### PRINT OF THE CURRENT STATE ######################
@@ -291,19 +290,23 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
 
             # Compute the error made with that vector of parameters  on the testing set
             if (realComputation):
-                if ((self.epoch % 5 == 0) or (self.epoch == 1)):
+                self.oldParam = std.str2dict(vector)
+                if ((self.epoch % 8 == 0) or (self.epoch == 1)):
                     self.epoch += 1
-                    self.step *= 0.9
                     print("     Computing error on the training set...")
-                    self.trainingErrors.append(sgd.error(self.oldParam, l, trainingSet, nbExamples))
+                    self.trainingErrors.append((sgd.error(self.oldParam, l, trainingSet, nbExamples),self.epoch))
                     print("     Computing error on the validation set...")
-                    self.testingErrors.append(sgd.error(self.oldParam, l, testingSet, nbTestingData))
+                    self.testingErrors.append((sgd.error(self.oldParam, l, testingSet, nbTestingData),self.epoch))
+                    self.step *= 0.9
                 else:
                     self.epoch += 1
                     self.step *= 0.9
 
+                print("duration = " + str(time.time()-self.startTime))
+
 
             if (vector == 'stop'):
+                print("time end********************************************")
                 endTime = time.time()
                 duration = endTime - self.startTime
                 print("The server ran during : " + str(duration))
