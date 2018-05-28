@@ -52,7 +52,7 @@ def treatData(data):
 
 print("Starting of the server...")
 
-with open('/home/kiwi974/cours/epfl/system_for_data_science/project/data/data12000', 'rb') as f:
+with open('/home/kiwi974/cours/epfl/system_for_data_science/project/data/data12000-vectpreprocessed', 'rb') as f:
     data = treatData(pickle.load(f))
 
 
@@ -72,7 +72,7 @@ nbChunks = nbExamples//chunkSize + 1
 numSamples = 1000
 
 # The depreciation of the SVM norm cost
-l = 0.01
+l = 0.5
 
 # Maximum number of server iterations we allow.
 nbMaxCall = 1000
@@ -98,7 +98,7 @@ print("Building of the training set...")
 trainingSet = data[:nbExamples]
 
 print("Training data pre-processing...")
-trainingSet = std.dataPreprocessing(trainingSet, hypPlace)
+#trainingSet = std.dataPreprocessing(trainingSet, hypPlace)
 
 print("Building of the testing set...")
 
@@ -106,7 +106,7 @@ print("Building of the testing set...")
 testingSet = data[nbExamples:nbExamples+nbTestingData]
 
 print("Testing data pre-processing")
-testingSet = std.dataPreprocessing(testingSet, hypPlace)
+#testingSet = std.dataPreprocessing(testingSet, hypPlace)
 
 
 
